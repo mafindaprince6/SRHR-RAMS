@@ -106,6 +106,12 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 
+.financeRate{background:var(--mint);border:1px solid var(--line);padding:14px 16px;border-radius:14px;margin-bottom:16px;overflow-wrap:anywhere}
+.requestSummary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:center;background:white;border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:20px}
+.requestSummary .financeRate{margin:0}.budgetAmount{display:block;font:800 27px Manrope;margin:8px 0;overflow-wrap:anywhere}
+.financePanel{margin-bottom:18px}.financePanel h2{margin-top:0}#usdRateEditor:not([hidden]){display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}#usdRateEditor .field{flex:1;max-width:320px}#usdRateSave:disabled{opacity:.6;cursor:wait}
+#budget td[contenteditable=true]:focus{outline:2px solid var(--emerald);background:var(--mint)}
+@media(max-width:600px){.requestSummary{grid-template-columns:minmax(0,1fr);padding:16px}.budgetAmount{font-size:24px}}
 </style>
 </head>
 <body>
@@ -141,6 +147,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <button class="btn secondary" onclick="logout()">Sign Out</button><select class="role" id="role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
 
 <section id="dashboard" class="view active">
+<div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div>
 <div style="background:linear-gradient(120deg,#202b39 0%,#34475d 64%,#50677d 100%);border-radius:24px;padding:28px 30px;margin-bottom:18px;color:white;position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(32,43,57,.16)">
 <div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
 <div style="max-width:700px;position:relative"><div style="font-size:10px;letter-spacing:1.8px;color:#dce6ed;font-weight:800">MINISTRY OF HEALTH • SRHR PROJECT</div>
@@ -159,6 +166,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 </section>
 
 <section id="new" class="view">
+<div class="requestSummary"><div><div class="label">SUMMARY BUDGET TOTAL</div><strong class="budgetAmount" data-budget-total>NLe 0.00</strong><div class="small" id="budgetUsdTotal"></div></div><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div></div>
 <div class="steps"><span class="step on">1 Start</span><span class="step">2 Request details</span><span class="step">3 Budget</span><span class="step">4 Documents</span><span class="step">5 Review & submit</span></div>
 <div id="start" class="panel"><h2>How would you like to start?</h2><div class="actions"><div class="action" onclick="choose('online')"><b>✍ Fill Request Online</b><span class="small">Enter all information directly in SRHR-RAMS.</span></div><div class="action" onclick="choose('upload')"><b>⬆ Upload Existing Excel Form</b><span class="small">The system will extract the request details and budget lines.</span></div></div></div>
 <div id="uploadbox" class="panel hide"><h2>Upload completed request form</h2><div class="upload"><b>SRHR Excel Request Form (.xlsx)</b><p class="small">Prototype extraction is mapped to the request template you supplied.</p><input type="file" accept=".xlsx,.xls" id="file"><br><br><button class="btn" onclick="extract()">Extract Information</button></div><div id="extract" class="extract"><h3>Extraction complete</h3><p><span class="ok">✓</span> Purpose, location, AWP code and budget lines detected. <span class="missing">Review required before submission.</span></p><button class="btn" onclick="openForm(true)">Review Extracted Information</button></div></div>
@@ -176,6 +184,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <tr><td>1</td><td>Senior Staff (Grade 7-10)</td><td>DSA</td><td>10</td><td>14</td><td>NLe 700</td><td>NLe 98,000</td></tr>
 <tr><td>2</td><td>Junior Staff (Grade 1-6)</td><td>DSA</td><td>5</td><td>14</td><td>NLe 500</td><td>NLe 35,000</td></tr>
 <tr><td>3</td><td>Driver</td><td>DSA</td><td>5</td><td>14</td><td>NLe 500</td><td>NLe 35,000</td></tr></table>
+<p><b>Summary Budget Total: <span data-budget-total>NLe 0.00</span></b></p>
 <p><button class="btn secondary" onclick="addLine()">+ Add Budget Line</button></p>
 <h3>Concept Note</h3>
 <div class="actions">
@@ -275,14 +284,18 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 
 <section id="requests" class="view"><div class="split"><div class="panel"><h2>My Requests</h2><table><tr><th>ID</th><th>Request</th><th>Status</th></tr><tr><td>SRHR-2026-0047</td><td>Supportive supervision</td><td><span class="badge info">IHPAU review</span></td></tr><tr><td>SRHR-2026-0046</td><td>ICT equipment</td><td><span class="badge warn">Awaiting receipts</span></td></tr></table></div><div class="panel"><h3>Request Timeline</h3><div class="timeline"><div class="event"><b>Submitted</b><div class="small">Directorate</div></div><div class="event"><b>Cleared</b><div class="small">Project Secretary</div></div><div class="event"><b>Approved</b><div class="small">Chairman</div></div><div class="event"><b>Received</b><div class="small">IHPAU</div></div></div></div></div></section>
 
-<section id="secretary" class="view"><div class="panel"><h2>Project Secretary Review Queue</h2><table><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr><tr><td>SRHR-2026-0050</td><td>DPPI</td><td>Operational</td><td>NLe 95,000</td><td><button class="btn" onclick="reviewRequest('SRHR-2026-0050')">Review</button>
+<section id="secretary" class="view"><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><div class="panel"><h2>Project Secretary Review Queue</h2><table><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr><tr><td>SRHR-2026-0050</td><td>DPPI</td><td>Operational</td><td>NLe 95,000</td><td><button class="btn" onclick="reviewRequest('SRHR-2026-0050')">Review</button>
 <button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Project Secretary','Directorate')">Return Query</button>
 <button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Project Secretary')">Send Reminder</button></td></tr></table></div></section>
 <section id="approval" class="view"><div class="panel"><h2>Chairman Approval Desk</h2><h3>SRHR-2026-0050 — HMIS Mentorship Activity</h3><p><b>Directorate:</b> DPPI &nbsp; <b>Type:</b> Operational &nbsp; <b>Amount:</b> NLe 95,000</p><p class="small">Request form, concept note and supporting documents are available for review.</p><button class="btn" onclick="approveRequest('SRHR-2026-0050')">Approve</button>
 <button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Chairman','Directorate')">Return / Query</button>
 <button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Chairman')">Send Reminder</button>
 <button class="btn danger" onclick="rejectRequest('SRHR-2026-0050')">Reject</button></div></section>
-<section id="ihpau" class="view"><div class="panel"><h2>IHPAU Processing Desk</h2><table><tr><th>ID</th><th>Type</th><th>Stage</th><th>Accountability</th><th>Action</th></tr><tr><td>SRHR-2026-0047</td><td>Operational</td><td>Payment Processing</td><td>—</td><td><button class="btn" onclick="updateFinance('SRHR-2026-0047')">Update</button>
+<section id="ihpau" class="view"><div class="panel financePanel"><h2>Current USD Exchange Rate</h2>
+<p class="small">IHPAU sets the NLe amount for 1 USD ($). This rate appears in the Directorate request form and Project Secretary workspace.</p><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><form id="usdRateEditor" hidden>
+<div class="field"><label for="usdRateInput">NLe per 1 USD ($)</label><input id="usdRateInput" type="number" min="0" step="any" inputmode="decimal" placeholder="Enter current rate" required></div>
+<button id="usdRateSave" class="btn" type="submit">Save USD Rate</button></form>
+<p id="usdRateStatus" class="small" role="status"></p></div><div class="panel"><h2>IHPAU Processing Desk</h2><table><tr><th>ID</th><th>Type</th><th>Stage</th><th>Accountability</th><th>Action</th></tr><tr><td>SRHR-2026-0047</td><td>Operational</td><td>Payment Processing</td><td>—</td><td><button class="btn" onclick="updateFinance('SRHR-2026-0047')">Update</button>
 <button class="btn secondary" onclick="raiseQuery('SRHR-2026-0047','IHPAU / Finance','Directorate')">Query</button>
 <button class="btn secondary" onclick="sendReminder('SRHR-2026-0047','IHPAU / Finance')">Remind</button></td></tr><tr><td>SRHR-2026-0046</td><td>Procurement</td><td>Procurement Completed</td><td><span class="badge warn">Receipts outstanding</span></td><td><button class="btn" onclick="recordReceipts('SRHR-2026-0046')">Record Receipts</button>
 <button class="btn secondary" onclick="raiseQuery('SRHR-2026-0046','IHPAU / Finance','Directorate')">Query</button>
@@ -359,6 +372,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 
 <section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></section>
 </main></div>
+<script src="/finance.js"></script>
 <script>
 const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",register:"Automatic Register"};
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.getElementById('title').textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
@@ -367,7 +381,7 @@ function choose(x){document.getElementById('start').classList.add('hide');docume
 function extract(){document.getElementById('extract').style.display='block'}
 function openForm(extracted){document.getElementById('uploadbox').classList.add('hide');document.getElementById('onlinebox').classList.remove('hide')}
 function toggleProc(){document.getElementById('procfields').classList.toggle('hide',document.getElementById('rtype').value!=='Procurement')}
-function addLine(){let t=document.getElementById('budget'),r=t.insertRow();r.innerHTML='<td>'+ (t.rows.length-1) +'</td><td contenteditable>New item</td><td contenteditable>Description</td><td contenteditable>1</td><td contenteditable>1</td><td contenteditable>NLe 0</td><td contenteditable>NLe 0</td>'}
+function addLine(){let t=document.getElementById('budget'),r=t.insertRow();r.innerHTML='<td>'+ (t.rows.length-1) +'</td><td contenteditable>New item</td><td contenteditable>Description</td><td contenteditable>1</td><td contenteditable>1</td><td contenteditable>NLe 0</td><td>NLe 0</td>';prepareBudgetRow(r);updateBudgetSummary()}
 function submitReq(){
  const id='SRHR-2026-'+String(51+Math.floor(Math.random()*20)).padStart(4,'0');
  addAlert('Project Secretary',id,'New request submitted','A Directorate has submitted a new request for review.');
@@ -742,10 +756,12 @@ function enterApp(a){
  document.getElementById('secureApp').style.display='block';
  const rs=document.getElementById('role');rs.value=a.role;rs.disabled=a.role!=='Administrator';
  applyRBAC();_showRBAC((rbac[a.role]||DEFAULT_RBAC[a.role]).home);
+ startSharedRate();
  if(a.mustChange||a.must_change)setTimeout(()=>changeOwnPassword(a.id,true),250);
 }
 
 async function logout(){
+ stopSharedRate();
  await authApi('/api/auth/logout',{method:'POST'}).catch(()=>{});
  authSession=null;
  document.getElementById('secureApp').style.display='none';

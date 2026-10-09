@@ -500,6 +500,32 @@ export default {
     }
 
 
+    // Shared finance rate. Existing system_settings table needs no migration.
+    if(p==='/api/finance/usd-rate'){
+      if(req.method==='GET'){
+        const row=await env.DB.prepare(
+          'SELECT value FROM system_settings WHERE key=?'
+        ).bind('usd_nle_rate').first();
+        return J(row ? JSON.parse(row.value) : {rate:null,updated_at:null,updated_by:null});
+      }
+      if(req.method==='PUT'){
+        if(!allowed(u,['IHPAU','Administrator'])) return J({error:'forbidden'},403);
+        const body=await req.json().catch(()=>null);
+        const rate=body?.rate;
+        if(typeof rate!=='number' || !Number.isFinite(rate) || rate<=0){
+          return J({error:'Enter a positive NLe amount for 1 USD.'},400);
+        }
+        const setting={rate,updated_at:new Date().toISOString(),updated_by:u.name};
+        await env.DB.prepare(
+          `INSERT INTO system_settings(key,value,updated_at) VALUES(?,?,?)
+           ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`
+        ).bind('usd_nle_rate',JSON.stringify(setting),setting.updated_at).run();
+        await audit(env,u,'USD_RATE_UPDATED','',`1 USD = NLe ${rate}`);
+        return J(setting);
+      }
+      return J({error:'method_not_allowed'},405,{allow:'GET, PUT'});
+    }
+
     /* =========================
        CHANGE PASSWORD
        ========================= */
