@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SRHR-RAMS Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+:root{
+ --ink:#13231c;--muted:#718079;--forest:#27364a;--forest2:#34475f;--emerald:#5f7f99;
+ --mint:#e8eef3;--lime:#d9e3ea;--cream:#f4f5f7;--paper:#fff;--line:#dde6e1;
+ --amber:#e7a83e;--red:#c84b42;--blue:#3c6eeb;--shadow:0 22px 60px rgba(12,55,39,.10)
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font:14px/1.55 "DM Sans",Segoe UI,sans-serif;background:var(--cream);color:var(--ink)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
+radial-gradient(circle at 82% 7%,rgba(93,126,153,.10),transparent 25%),
+radial-gradient(circle at 15% 88%,rgba(80,99,119,.06),transparent 26%)}
+.app{display:grid;grid-template-columns:292px 1fr;min-height:100vh;position:relative}
+.side{background:linear-gradient(160deg,#202b39 0%,#2d3d50 68%,#3a4c61 100%);color:white;padding:30px 22px;position:sticky;top:0;height:100vh;overflow:hidden}
+.side:after{content:"";position:absolute;width:260px;height:260px;border:1px solid rgba(255,255,255,.09);border-radius:50%;bottom:-100px;right:-110px;box-shadow:0 0 0 38px rgba(255,255,255,.025),0 0 0 76px rgba(255,255,255,.018)}
+.brand{font-family:Manrope,sans-serif;font-size:27px;font-weight:800;letter-spacing:-1.2px;position:relative;z-index:2}
+.brand:before{content:"SL";display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;margin-right:10px;background:#e6ebef;color:#2a3b4e;font-size:13px;letter-spacing:0;vertical-align:3px}
+.sub{opacity:.62;font-size:11px;line-height:1.5;margin:8px 5px 34px 50px;max-width:170px}
+.nav{position:relative;z-index:2}.nav button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:#dce4eb;padding:13px 15px;border-radius:13px;margin:5px 0;cursor:pointer;font:600 13px "DM Sans";transition:.22s}
+.nav button:before{content:"";width:7px;height:7px;border:1.5px solid currentColor;border-radius:50%;margin-right:13px;opacity:.7}
+.nav button.active{background:rgba(255,255,255,.12);color:white;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.nav button.active:before{background:var(--lime);border-color:var(--lime);box-shadow:0 0 0 4px rgba(216,239,111,.12)}
+.nav button:hover{background:rgba(255,255,255,.08)}
+.main{padding:34px 42px 70px;max-width:1600px;width:100%;margin:auto}
+.top{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:32px}
+.top h1{margin:0;font:800 29px/1.15 Manrope;letter-spacing:-1px}.small{font-size:12px;color:var(--muted)}
+.role{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border:1px solid var(--line);padding:11px 14px;border-radius:14px;font-weight:600;box-shadow:0 5px 20px rgba(12,55,39,.04)}
+.cards{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:15px}
+.card,.panel{background:rgba(255,255,255,.91);border:1px solid rgba(218,228,223,.9);border-radius:20px;padding:21px;box-shadow:0 8px 28px rgba(17,57,42,.045);backdrop-filter:blur(10px)}
+.card{min-height:128px;position:relative;overflow:hidden;transition:.25s}.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card:first-child{background:linear-gradient(135deg,#263548,#3b5067);color:white;border:0}
+.card:first-child .label{color:#cbd5de}.card:first-child:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;background:var(--lime);right:-45px;top:-40px;opacity:.9}
+.metric{font:800 35px Manrope;margin-top:14px;letter-spacing:-1px}.label{color:var(--muted);font-size:10px;letter-spacing:1.2px;font-weight:700}
+h2{font:800 20px Manrope;letter-spacing:-.5px;margin-top:26px}h3{font:700 15px Manrope;margin-top:23px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:18px 0 25px}.action{padding:23px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.82);cursor:pointer;position:relative;overflow:hidden;transition:.25s}
+.action:after{content:"→";position:absolute;right:19px;top:19px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#eef4f1;color:var(--forest);font-size:17px}
+.action:hover{border-color:#a8c9b9;transform:translateY(-3px);box-shadow:var(--shadow)}.action b{display:block;font:700 16px Manrope;margin-bottom:7px;padding-right:35px}
+table{width:100%;border-collapse:separate;border-spacing:0}th,td{padding:13px 10px;border-bottom:1px solid #edf1ef;text-align:left;font-size:12.5px}th{color:#84918b;font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+tr:last-child td{border-bottom:0}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#e9eef3;color:#405c73;font-size:10px;font-weight:800}.warn{background:#fff3dc;color:#a66508}.info{background:#eaf0ff;color:#315fc7}
+.btn{border:0;border-radius:11px;padding:11px 16px;background:linear-gradient(135deg,var(--forest2),#526b83);color:white;font:700 12px "DM Sans";cursor:pointer;box-shadow:0 7px 18px rgba(52,71,95,.14);transition:.2s}.btn:hover{transform:translateY(-1px)}.btn.secondary{background:white;color:var(--ink);border:1px solid var(--line);box-shadow:none}.btn.danger{background:var(--red)}
+.view{display:none}.view.active{display:block;animation:rise .35s ease}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#52615a;letter-spacing:.15px}
+input,select,textarea{width:100%;padding:12px 13px;border:1px solid #d6e0db;border-radius:11px;background:#fcfdfc;font:13px "DM Sans";outline:none;transition:.2s}input:focus,select:focus,textarea:focus{border-color:#7a94aa;box-shadow:0 0 0 3px rgba(95,127,153,.10);background:white}textarea{min-height:94px;resize:vertical}
+.steps{display:flex;gap:0;margin:0 0 22px;padding:9px;background:#e9efeb;border-radius:15px;width:max-content;max-width:100%;flex-wrap:wrap}.step{padding:7px 12px;border-radius:9px;color:#718079;font-size:10px;font-weight:700}.step.on{background:white;color:var(--forest);box-shadow:0 3px 10px rgba(18,58,43,.08)}
+.upload{border:1.5px dashed #a8c3b7;border-radius:18px;padding:40px;text-align:center;background:linear-gradient(145deg,#fbfdfc,#f1f7f4)}.extract{margin-top:16px;display:none}.ok{color:#4d6b83;font-weight:800}.missing{color:#b87614;font-weight:800}
+.timeline{border-left:1px solid #ccd6de;margin-left:9px;padding-left:22px}.event{margin:0 0 22px;position:relative}.event:before{content:"";width:9px;height:9px;background:var(--lime);border:3px solid var(--forest);border-radius:50%;position:absolute;left:-30px;top:3px}
+.split{display:grid;grid-template-columns:2fr 1fr;gap:17px}.hide{display:none}
+#dashboard:before{content:"REQUEST CONTROL CENTRE";display:inline-block;font:800 10px Manrope;letter-spacing:1.5px;color:#6f7f77;margin-bottom:12px}
+#dashboard .panel{margin-top:20px}
+#register .panel,#secretary .panel,#approval .panel,#ihpau .panel,#concept .panel,#new .panel{box-shadow:0 16px 45px rgba(17,57,42,.06)}
+@media(max-width:1050px){.cards{grid-template-columns:1fr 1fr}.app{grid-template-columns:230px 1fr}.main{padding:28px 24px}}
+@media(max-width:760px){.app{grid-template-columns:1fr}.side{height:auto;position:relative;padding:20px}.sub{margin-bottom:15px}.nav{display:flex;overflow:auto;gap:5px}.nav button{min-width:max-content}.cards,.actions,.formgrid,.split{grid-template-columns:1fr}.field.full{grid-column:auto}.main{padding:22px 15px}.top{align-items:flex-start}.top h1{font-size:24px}.role{max-width:150px}}
+
+/* v10 responsive layer */
+.mobileMenu{display:none}.tableWrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:900px){
+ .app{display:block}.side{position:fixed;z-index:50;left:-310px;top:0;width:min(292px,88vw);height:100vh;padding:24px 18px;transition:left .25s ease;overflow-y:auto}.side.open{left:0;box-shadow:20px 0 60px rgba(0,0,0,.24)}
+ .side .nav{display:block;overflow:visible}.side .nav button{min-width:0}.mobileMenu{display:inline-flex;align-items:center;justify-content:center}
+ .main{padding:18px 14px 60px}.top{position:sticky;top:0;z-index:30;background:rgba(244,245,247,.94);backdrop-filter:blur(12px);padding:10px 0;margin-bottom:18px;align-items:center}.top h1{font-size:21px}
+ .top>div:last-child{gap:6px;flex-wrap:wrap;justify-content:flex-end}.role{max-width:145px;padding:9px 10px}.cards{grid-template-columns:1fr 1fr}.card{min-height:105px;padding:16px}.metric{font-size:29px}
+ table{min-width:680px}.panel{padding:16px;border-radius:16px}.upload{padding:24px 14px}.actions{gap:10px}.action{padding:18px}.formgrid,.split{grid-template-columns:1fr}.field.full{grid-column:auto}
+}
+@media(max-width:520px){.cards{grid-template-columns:1fr}.top .small{display:none}.top>div:last-child .btn{padding:9px 10px}.role{width:100%;max-width:100%}.actions{grid-template-columns:1fr}.steps{width:100%;overflow-x:auto;flex-wrap:nowrap}.step{white-space:nowrap}.main{padding-left:10px;padding-right:10px}.card,.panel{border-radius:14px}input,select,textarea{font-size:16px}}
+/* Responsive layout repair: keep wide content inside its own scroll region. */
+.app{grid-template-columns:292px minmax(0,1fr)}
+.main,.view,.panel,.card,.field,.split>*,.formgrid>*,.top>div{min-width:0}
+.side{overflow-y:auto}.side:after{pointer-events:none}
+.top{flex-wrap:wrap}.top>div:last-child{flex-wrap:wrap;max-width:100%}
+.top .role{width:auto;max-width:100%}.top h1{overflow-wrap:anywhere}
+.tableWrap{max-width:100%;overflow:auto;overscroll-behavior-x:contain}
+.tableWrap:focus-visible{outline:2px solid var(--emerald);outline-offset:3px}
+input[type=checkbox],input[type=radio]{width:auto;min-height:20px;min-width:20px}
+img,video,canvas{max-width:100%}button{touch-action:manipulation}
+.menuBackdrop{display:none}
+@media(min-width:901px) and (max-width:1200px){
+ .app{grid-template-columns:230px minmax(0,1fr)}
+ .main{padding:24px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .split{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+}
+@media(max-width:900px){
+ .app{display:block}.side{height:100dvh;height:100vh;max-height:100dvh;z-index:60}
+ .menuBackdrop.open{display:block;position:fixed;inset:0;background:rgba(15,23,42,.48);z-index:55}
+ body.menuOpen{overflow:hidden}.top{position:relative;align-items:flex-start}
+ .top>div:first-child{width:100%}.top>div:last-child{width:100%;justify-content:flex-start}
+ .btn,.nav button{min-height:44px}.top .role{flex:1;min-width:140px;max-width:260px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .steps{overflow-x:auto;max-width:100%}.panel{max-width:100%}
+ #adminWorkbench>div[style*="justify-content:space-between"]{flex-wrap:wrap;gap:12px}
+}
+@media(max-width:520px){
+ #loginScreen{padding:16px!important}#loginScreen>div{padding:24px 20px!important}
+ .top h1{font-size:22px}.top .small{display:block;font-size:11px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .card{padding:14px;min-height:100px}.label{overflow-wrap:anywhere}.metric{font-size:28px}
+ .actions,.formgrid,.split{grid-template-columns:minmax(0,1fr)}
+ #dashboard>div:first-child{padding:22px 18px!important}
+ .upload{overflow-wrap:anywhere}.steps .step{flex-shrink:0}
+ input,select,textarea{font-size:16px}
+}
+@media(max-width:350px){.cards{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+
+</style>
+</head>
+<body>
+<div id="loginScreen" style="min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#eef1f4,#f8f8f6)">
+ <div style="width:min(440px,100%);background:white;border:1px solid #dfe4e8;border-radius:26px;padding:34px;box-shadow:0 28px 80px rgba(31,43,57,.12)">
+  <div class="label">MINISTRY OF HEALTH • SRHR PROJECT</div>
+  <h1 style="font:800 29px/1.15 Manrope;margin:8px 0 6px">Sign in to SRHR-RAMS</h1>
+  <p class="small">Your account determines the workspace, data and actions available to you.</p>
+  <div class="field" style="margin-top:22px"><label>Username</label><input id="loginUser" autocomplete="username" placeholder="Enter username"></div>
+  <div class="field" style="margin-top:13px"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
+  <div id="loginError" style="color:#b23c36;font-size:12px;margin-top:10px"></div>
+  <button class="btn" style="width:100%;margin-top:16px" onclick="login()">Sign In</button>
+  <p class="small" style="margin-top:17px">Prototype authentication. Production passwords will be securely hashed and validated by the server.</p>
+ </div>
+</div>
+<div id="secureApp" style="display:none">
+<div class="app">
+<aside class="side">
+<div class="brand">SRHR-RAMS</div><div class="sub">Request & Activity Management System</div>
+<div class="nav">
+<button class="active" data-v="dashboard">Dashboard</button>
+<button data-v="new">New Request</button><button data-v="concept">Concept Note</button>
+<button data-v="requests">My Requests</button>
+<button data-v="secretary">Secretary Desk</button>
+<button data-v="approval">Chairman Approval</button>
+<button data-v="ihpau">IHPAU Desk</button>
+<button data-v="admin">Admin Control Centre</button><button data-v="alerts">Alerts & Reminders</button><button data-v="register">Automatic Register</button>
+</div>
+</aside>
+<main class="main">
+<div class="top"><div style="display:flex;gap:9px;align-items:center"><button class="btn secondary mobileMenu" onclick="toggleMobileMenu()" aria-label="Open menu">☰</button><div><h1 id="title">Directorate Dashboard</h1><div class="small">Sexual and Reproductive Health and Rights Project</div></div></div><div style="display:flex;gap:9px;align-items:center">
+<button class="btn secondary" onclick="openNotifications()">🔔 Alerts <span id="alertCount" class="badge warn">0</span></button>
+<button class="btn secondary" onclick="logout()">Sign Out</button><select class="role" id="role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
+
+<section id="dashboard" class="view active">
+<div style="background:linear-gradient(120deg,#202b39 0%,#34475d 64%,#50677d 100%);border-radius:24px;padding:28px 30px;margin-bottom:18px;color:white;position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(32,43,57,.16)">
+<div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
+<div style="max-width:700px;position:relative"><div style="font-size:10px;letter-spacing:1.8px;color:#dce6ed;font-weight:800">MINISTRY OF HEALTH • SRHR PROJECT</div>
+<div style="font:800 29px/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
+<div style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
+<div style="margin-top:18px"><button class="btn" style="background:#dce6ed;color:#25384b;box-shadow:none" onclick="show('new')">Create New Request →</button></div></div></div>
+<div class="cards"><div class="card"><div class="label">MY REQUESTS</div><div class="metric">12</div></div><div class="card"><div class="label">AWAITING APPROVAL</div><div class="metric">3</div></div><div class="card"><div class="label">AT IHPAU</div><div class="metric">4</div></div><div class="card"><div class="label">COMPLETED</div><div class="metric">5</div></div></div>
+<h2>Create a request</h2><div class="actions">
+<div class="action" onclick="show('new');choose('online')"><b>✍ Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
+<div class="action" onclick="show('new');choose('upload')"><b>⬆ Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
+</div>
+<div class="panel"><h3>Recent Requests</h3><table><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr>
+<tr><td>SRHR-2026-0047</td><td>Operational</td><td>Administrative supportive supervision</td><td>NLe 348,000</td><td><span class="badge info">At IHPAU</span></td></tr>
+<tr><td>SRHR-2026-0046</td><td>Procurement</td><td>ICT equipment</td><td>NLe 126,500</td><td><span class="badge warn">Awaiting receipts</span></td></tr>
+<tr><td>SRHR-2026-0045</td><td>Operational</td><td>Training activity</td><td>NLe 82,000</td><td><span class="badge">Approved</span></td></tr></table></div>
+</section>
+
+<section id="new" class="view">
+<div class="steps"><span class="step on">1 Start</span><span class="step">2 Request details</span><span class="step">3 Budget</span><span class="step">4 Documents</span><span class="step">5 Review & submit</span></div>
+<div id="start" class="panel"><h2>How would you like to start?</h2><div class="actions"><div class="action" onclick="choose('online')"><b>✍ Fill Request Online</b><span class="small">Enter all information directly in SRHR-RAMS.</span></div><div class="action" onclick="choose('upload')"><b>⬆ Upload Existing Excel Form</b><span class="small">The system will extract the request details and budget lines.</span></div></div></div>
+<div id="uploadbox" class="panel hide"><h2>Upload completed request form</h2><div class="upload"><b>SRHR Excel Request Form (.xlsx)</b><p class="small">Prototype extraction is mapped to the request template you supplied.</p><input type="file" accept=".xlsx,.xls" id="file"><br><br><button class="btn" onclick="extract()">Extract Information</button></div><div id="extract" class="extract"><h3>Extraction complete</h3><p><span class="ok">✓</span> Purpose, location, AWP code and budget lines detected. <span class="missing">Review required before submission.</span></p><button class="btn" onclick="openForm(true)">Review Extracted Information</button></div></div>
+<div id="onlinebox" class="panel hide"><h2>Request Details</h2>
+<div class="formgrid">
+<div class="field"><label>Request Type</label><select id="rtype" onchange="toggleProc()"><option>Operational</option><option>Procurement</option></select></div>
+<div class="field"><label>Implementing Entity / Directorate</label><input value="Deputy Secretary & Hospital Secretary Supervision Unit"></div>
+<div class="field full"><label>Purpose of Activity / Request</label><textarea id="purpose">Request for operational funding for Hospital Secretaries' administrative supportive supervision and facility assessment</textarea></div>
+<div class="field"><label>Location of Activity</label><input value="Nationwide"></div><div class="field"><label>AWP Activity & Budget Line Code</label><input value="Activity: 6.2.19"></div>
+<div class="field"><label>Target Output</label><input value="Engaging Hospital Secretaries on administrative supportive supervision and facility assessment"></div><div class="field"><label>Deliverable</label><input value="Liquidation"></div>
+<div class="field"><label>Timeline</label><input value="20/09/2026 - 04/10/2026"></div><div class="field"><label>Estimated Completion Date</label><input type="date"></div>
+<div id="procfields" class="field full hide"><label>Procurement Method / Specifications</label><textarea placeholder="Procurement-specific information..."></textarea></div>
+</div>
+<h3>Summary Budget</h3><table id="budget"><tr><th>No.</th><th>Activity Type</th><th>Description</th><th>Unit</th><th>Qty/Days</th><th>Unit Cost</th><th>Total</th></tr>
+<tr><td>1</td><td>Senior Staff (Grade 7-10)</td><td>DSA</td><td>10</td><td>14</td><td>NLe 700</td><td>NLe 98,000</td></tr>
+<tr><td>2</td><td>Junior Staff (Grade 1-6)</td><td>DSA</td><td>5</td><td>14</td><td>NLe 500</td><td>NLe 35,000</td></tr>
+<tr><td>3</td><td>Driver</td><td>DSA</td><td>5</td><td>14</td><td>NLe 500</td><td>NLe 35,000</td></tr></table>
+<p><button class="btn secondary" onclick="addLine()">+ Add Budget Line</button></p>
+<h3>Concept Note</h3>
+<div class="actions">
+<div class="action" onclick="show('concept');cnChoose('write')"><b>✍ Create Standard Concept Note</b><span class="small">Write it in SRHR-RAMS and attach it to this request.</span></div>
+<div class="action" onclick="show('concept');cnChoose('upload')"><b>⬆ Upload & Extract Concept Note</b><span class="small">Upload Word/PDF, extract the content, review and attach it.</span></div>
+</div>
+<h3>Supporting Documents</h3><div class="formgrid"><div class="field"><label>Other Supporting Documents</label><input type="file" multiple></div><div class="field"><label>Additional Budget / Evidence</label><input type="file" multiple></div></div>
+<br><button class="btn secondary">Save Draft</button> <button class="btn" onclick="submitReq()">Review & Submit</button>
+</div>
+</section>
+
+
+<section id="concept" class="view">
+  <div class="steps"><span class="step on">1 Start</span><span class="step">2 Concept details</span><span class="step">3 Narrative</span><span class="step">4 Review</span></div>
+
+  <div id="cnstart" class="panel">
+    <h2>Concept Note</h2>
+    <p class="small">Create a standard SRHR concept note in the system or upload an existing Word/PDF document for extraction and review.</p>
+    <div class="actions">
+      <div class="action" onclick="cnChoose('write')"><b>✍ Write Concept Note Online</b><span class="small">Use the standardized SRHR concept note template.</span></div>
+      <div class="action" onclick="cnChoose('upload')"><b>⬆ Upload Existing Concept Note</b><span class="small">Extract Date, From, To, Through, title, narrative, objectives, budget and other fields.</span></div>
+    </div>
+  </div>
+
+  <div id="cnupload" class="panel hide">
+    <h2>Upload Existing Concept Note</h2>
+    <div class="upload">
+      <b>Concept Note (.docx or .pdf)</b>
+      <p class="small">The production parser will identify structured headings and narrative sections, then ask the user to review the result.</p>
+      <input type="file" accept=".doc,.docx,.pdf" id="cnfile"><br><br>
+      <button class="btn" onclick="cnExtract()">Extract Concept Note</button>
+    </div>
+    <div id="cnextract" class="extract">
+      <h3>Extraction Preview</h3>
+      <table>
+        <tr><th>Field</th><th>Extracted value</th><th>Confidence</th></tr>
+        <tr><td>Date</td><td>08 September 2026</td><td><span class="ok">Detected</span></td></tr>
+        <tr><td>From</td><td>Project Management Analyst, SRHR Project</td><td><span class="ok">Detected</span></td></tr>
+        <tr><td>To</td><td>Team Lead, IHPAU</td><td><span class="ok">Detected</span></td></tr>
+        <tr><td>Through</td><td>Project Coordinator, SRHR Project</td><td><span class="ok">Detected</span></td></tr>
+        <tr><td>Activity Title / Subject</td><td>Transport Refunds to Nurses on the Official Handover of SRHR Drugs to MOH</td><td><span class="ok">Detected</span></td></tr>
+        <tr><td>Objectives</td><td>Needs review</td><td><span class="missing">Review</span></td></tr>
+      </table><br>
+      <button class="btn" onclick="cnOpen(true)">Review & Complete Extracted Concept Note</button>
+    </div>
+  </div>
+
+  <div id="cnform" class="panel hide">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h2>Standard SRHR Concept Note</h2><div class="small">Fields marked for review must be confirmed before submission.</div></div><span class="badge info" id="cnmode">Online entry</span></div>
+    <h3>Document Information</h3>
+    <div class="formgrid">
+      <div class="field"><label>Date</label><input id="cndate" type="date"></div>
+      <div class="field"><label>Directorate / Programme / Unit</label><input id="cndir" placeholder="e.g. DPPI"></div>
+      <div class="field"><label>From</label><input id="cnfrom" placeholder="Name / title / unit"></div>
+      <div class="field"><label>To</label><input id="cnto" placeholder="Recipient / office"></div>
+      <div class="field"><label>Through</label><input id="cnthrough" placeholder="If applicable"></div>
+      <div class="field"><label>Activity / Request Type</label><select><option>Operational</option><option>Procurement</option></select></div>
+      <div class="field full"><label>Activity Title / Subject</label><input id="cntitle" placeholder="Clear title of the proposed activity"></div>
+      <div class="field"><label>Location</label><input placeholder="District / facility / nationwide"></div>
+      <div class="field"><label>Implementation Period</label><input placeholder="Start date – End date"></div>
+      <div class="field"><label>AWP Activity / Budget Line Code</label><input placeholder="Activity / budget code"></div>
+      <div class="field"><label>Estimated Budget (NLe)</label><input type="number" id="cnbudget" placeholder="0.00"></div>
+    </div>
+
+    <h3>Concept Narrative</h3>
+    <div class="formgrid">
+      <div class="field full"><label>Background / Context</label><textarea placeholder="Brief background and context for the proposed activity..."></textarea></div>
+      <div class="field full"><label>Problem Statement / Justification</label><textarea placeholder="Why is this activity needed?"></textarea></div>
+      <div class="field full"><label>Goal / Overall Objective</label><textarea placeholder="Overall goal of the activity..."></textarea></div>
+      <div class="field full"><label>Specific Objectives</label><textarea placeholder="List the specific objectives..."></textarea></div>
+      <div class="field full"><label>Proposed Activities / Methodology</label><textarea placeholder="Describe what will be done and how..."></textarea></div>
+      <div class="field"><label>Target Participants / Beneficiaries</label><textarea placeholder="Who will participate or benefit?"></textarea></div>
+      <div class="field"><label>Expected Outputs</label><textarea placeholder="Immediate deliverables / outputs..."></textarea></div>
+      <div class="field full"><label>Expected Outcomes</label><textarea placeholder="Expected changes or results..."></textarea></div>
+      <div class="field full"><label>Implementation Arrangements / Responsibilities</label><textarea placeholder="Responsible teams, partners and roles..."></textarea></div>
+      <div class="field full"><label>Monitoring, Reporting & Accountability</label><textarea placeholder="How progress, reporting, liquidation/receipts and accountability will be handled..."></textarea></div>
+      <div class="field full"><label>Risks & Mitigation</label><textarea placeholder="Key risks and mitigation measures..."></textarea></div>
+      <div class="field full"><label>Conclusion / Request</label><textarea placeholder="Closing justification and request for support/approval..."></textarea></div>
+    </div>
+
+    <h3>Supporting Documents</h3>
+    <div class="formgrid">
+      <div class="field"><label>Budget / Cost Breakdown</label><input type="file"></div>
+      <div class="field"><label>Other Supporting Documents</label><input type="file" multiple></div>
+    </div><br>
+    <button class="btn secondary" onclick="alert('Prototype: concept note saved as draft.')">Save Draft</button>
+    <button class="btn secondary" onclick="cnPreview()">Preview Concept Note</button>
+    <button class="btn" onclick="cnAttach()">Confirm & Attach to Request</button>
+
+    <div id="cnpreview" class="panel hide" style="margin-top:18px;background:#fbfdfc">
+      <div style="text-align:center"><b>GOVERNMENT OF SIERRA LEONE</b><br><b>MINISTRY OF HEALTH</b><br>Sexual and Reproductive Health and Rights (SRHR) Project<h2>CONCEPT NOTE</h2></div>
+      <p><b>Date:</b> <span id="pvdate">—</span></p><p><b>From:</b> <span id="pvfrom">—</span></p><p><b>To:</b> <span id="pvto">—</span></p><p><b>Through:</b> <span id="pvthrough">—</span></p><p><b>Subject:</b> <span id="pvtitle">—</span></p>
+      <hr><p class="small">The full production preview will render all completed concept-note sections in the standard MoH/SRHR document format and support PDF/Word generation.</p>
+    </div>
+  </div>
+</section>
+
+<section id="requests" class="view"><div class="split"><div class="panel"><h2>My Requests</h2><table><tr><th>ID</th><th>Request</th><th>Status</th></tr><tr><td>SRHR-2026-0047</td><td>Supportive supervision</td><td><span class="badge info">IHPAU review</span></td></tr><tr><td>SRHR-2026-0046</td><td>ICT equipment</td><td><span class="badge warn">Awaiting receipts</span></td></tr></table></div><div class="panel"><h3>Request Timeline</h3><div class="timeline"><div class="event"><b>Submitted</b><div class="small">Directorate</div></div><div class="event"><b>Cleared</b><div class="small">Project Secretary</div></div><div class="event"><b>Approved</b><div class="small">Chairman</div></div><div class="event"><b>Received</b><div class="small">IHPAU</div></div></div></div></div></section>
+
+<section id="secretary" class="view"><div class="panel"><h2>Project Secretary Review Queue</h2><table><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr><tr><td>SRHR-2026-0050</td><td>DPPI</td><td>Operational</td><td>NLe 95,000</td><td><button class="btn" onclick="reviewRequest('SRHR-2026-0050')">Review</button>
+<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Project Secretary','Directorate')">Return Query</button>
+<button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Project Secretary')">Send Reminder</button></td></tr></table></div></section>
+<section id="approval" class="view"><div class="panel"><h2>Chairman Approval Desk</h2><h3>SRHR-2026-0050 — HMIS Mentorship Activity</h3><p><b>Directorate:</b> DPPI &nbsp; <b>Type:</b> Operational &nbsp; <b>Amount:</b> NLe 95,000</p><p class="small">Request form, concept note and supporting documents are available for review.</p><button class="btn" onclick="approveRequest('SRHR-2026-0050')">Approve</button>
+<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Chairman','Directorate')">Return / Query</button>
+<button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Chairman')">Send Reminder</button>
+<button class="btn danger" onclick="rejectRequest('SRHR-2026-0050')">Reject</button></div></section>
+<section id="ihpau" class="view"><div class="panel"><h2>IHPAU Processing Desk</h2><table><tr><th>ID</th><th>Type</th><th>Stage</th><th>Accountability</th><th>Action</th></tr><tr><td>SRHR-2026-0047</td><td>Operational</td><td>Payment Processing</td><td>—</td><td><button class="btn" onclick="updateFinance('SRHR-2026-0047')">Update</button>
+<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0047','IHPAU / Finance','Directorate')">Query</button>
+<button class="btn secondary" onclick="sendReminder('SRHR-2026-0047','IHPAU / Finance')">Remind</button></td></tr><tr><td>SRHR-2026-0046</td><td>Procurement</td><td>Procurement Completed</td><td><span class="badge warn">Receipts outstanding</span></td><td><button class="btn" onclick="recordReceipts('SRHR-2026-0046')">Record Receipts</button>
+<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0046','IHPAU / Finance','Directorate')">Query</button>
+<button class="btn secondary" onclick="sendReminder('SRHR-2026-0046','IHPAU / Finance')">Remind</button></td></tr></table></div></section>
+
+
+<section id="admin" class="view">
+<div class="panel">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+<div><div class="label">SYSTEM ADMINISTRATION</div><h2 style="margin:5px 0">User & Notification Control</h2>
+<p class="small">Choose how each workflow user receives SRHR-RAMS alerts. In-App works immediately in this prototype. Email and WhatsApp can be previewed/tested here and become automatic once production provider credentials are connected.</p></div>
+<div style="display:flex;gap:8px"><button class="btn secondary" onclick="adminTool('audit')">Audit Log <span id="auditCount" class="badge">0</span></button><button class="btn" onclick="addAdminUser()">+ Add User</button></div></div>
+<div style="overflow:auto"><table><thead><tr><th>User</th><th>Role / Stage</th><th>Directorate / Team</th><th>Email</th><th>WhatsApp</th><th>Channels</th><th>Test</th></tr></thead>
+<tbody id="userConfigBody"></tbody></table></div>
+</div>
+
+<div class="cards" style="margin-top:17px">
+<div class="card"><div class="label">ACCESS</div><div class="metric" style="font-size:22px">Users & Roles</div><div class="small">Create, disable, reassign and control permissions.</div></div>
+<div class="card"><div class="label">WORKFLOW</div><div class="metric" style="font-size:22px">Process Engine</div><div class="small">Change stage owners, routing and escalation rules.</div></div>
+<div class="card"><div class="label">SYSTEM</div><div class="metric" style="font-size:22px">Configuration</div><div class="small">Request IDs, deadlines, currencies and system behaviour.</div></div>
+<div class="card"><div class="label">GOVERNANCE</div><div class="metric" style="font-size:22px">Audit & Recovery</div><div class="small">Inspect every privileged action and restore settings.</div></div>
+</div>
+
+<div class="panel" style="margin-top:17px">
+<h2>Supreme Admin Console</h2>
+<p class="small">Privileged controls change system behaviour without altering source code. Sensitive actions are recorded in the administrator audit log.</p>
+<div class="actions" style="grid-template-columns:repeat(3,1fr)">
+<div class="action" onclick="adminTool('workflow')"><b>Workflow Designer</b><span class="small">Reorder stages, rename stages and change responsible roles.</span></div>
+<div class="action" onclick="adminTool('accounts')"><b>User Accounts & Passwords</b><span class="small">Create accounts, reset passwords, lock/unlock users and assign roles.</span></div><div class="action" onclick="adminTool('permissions')"><b>Interface & Permissions</b><span class="small">Control menus, dashboards, actions and data visibility for every role.</span></div>
+<div class="action" onclick="adminTool('requests')"><b>Request Intervention</b><span class="small">Reassign, place on hold, reopen or correct workflow placement.</span></div>
+<div class="action" onclick="adminTool('notifications')"><b>Notification Rules</b><span class="small">Channels, escalation windows, reminder limits and recipients.</span></div>
+<div class="action" onclick="adminTool('entities')"><b>Directorates & Entities</b><span class="small">Add, edit, activate/deactivate and assign focal persons.</span></div>
+<div class="action" onclick="adminTool('templates')"><b>Forms & Templates</b><span class="small">Manage request, concept-note and document template versions.</span></div>
+<div class="action" onclick="adminTool('finance')"><b>Finance Configuration</b><span class="small">Currencies, procurement methods, PIM categories and reporting years.</span></div>
+<div class="action" onclick="adminTool('system')"><b>System Settings</b><span class="small">Request numbering, session rules, labels and maintenance controls.</span></div>
+<div class="action" onclick="adminTool('audit')"><b>Audit & Recovery</b><span class="small">Review privileged actions, export logs and restore configuration snapshots.</span></div>
+</div>
+</div>
+
+<div id="adminWorkbench" class="panel" style="margin-top:17px">
+<h3>Administrator Workbench</h3>
+<p class="small">Select a control above.</p>
+</div>
+<div class="split" style="margin-top:17px">
+<div class="panel"><h3>Notification Test Console</h3>
+<div class="formgrid">
+<div class="field"><label>Request ID</label><input id="testReq" value="SRHR-2026-0050"></div>
+<div class="field"><label>Current workflow stage</label><select id="testStage"><option>Project Secretary</option><option>Chairman</option><option>IHPAU / Finance</option></select></div>
+<div class="field full"><label>Message</label><textarea id="testMsg">Please review and take the required action on this request.</textarea></div>
+</div>
+<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="testWorkflowReminder()">Test Workflow Reminder</button><button class="btn secondary" onclick="clearTestLog()">Clear Test Log</button></div>
+</div>
+<div class="panel"><h3>Delivery Simulation</h3><div id="testLog" class="small">No notification test has been run yet.</div></div>
+</div>
+</section>
+
+<section id="alerts" class="view">
+<div class="split">
+<div class="panel">
+<h2>Alerts & Action Centre</h2>
+<p class="small">Queries and reminders are routed according to the current workflow stage. Passed stages are excluded from reminder routing.</p>
+<div id="alertsList"></div>
+</div>
+<div class="panel">
+<h3>Routing rule</h3>
+<div class="timeline">
+<div class="event"><b>Directorate</b><div class="small">Request originator / designated focal person</div></div>
+<div class="event"><b>Project Secretary</b><div class="small">Review and coordination</div></div>
+<div class="event"><b>Chairman</b><div class="small">Approval</div></div>
+<div class="event"><b>IHPAU / Finance</b><div class="small">Processing, payment and accountability</div></div>
+</div>
+<p class="small"><b>Forward-only reminder rule:</b> a reminder at Secretary stage goes to Chairman and IHPAU/Finance; a reminder at Chairman stage goes to IHPAU/Finance; a reminder at IHPAU stage stays with the designated IHPAU/Finance recipient. Earlier completed stages are not alerted.</p>
+</div></div></section>
+
+<section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></section>
+</main></div>
+<script>
+const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",register:"Automatic Register"};
+function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.getElementById('title').textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function choose(x){document.getElementById('start').classList.add('hide');document.getElementById('uploadbox').classList.toggle('hide',x!=='upload');document.getElementById('onlinebox').classList.toggle('hide',x!=='online')}
+function extract(){document.getElementById('extract').style.display='block'}
+function openForm(extracted){document.getElementById('uploadbox').classList.add('hide');document.getElementById('onlinebox').classList.remove('hide')}
+function toggleProc(){document.getElementById('procfields').classList.toggle('hide',document.getElementById('rtype').value!=='Procurement')}
+function addLine(){let t=document.getElementById('budget'),r=t.insertRow();r.innerHTML='<td>'+ (t.rows.length-1) +'</td><td contenteditable>New item</td><td contenteditable>Description</td><td contenteditable>1</td><td contenteditable>1</td><td contenteditable>NLe 0</td><td contenteditable>NLe 0</td>'}
+function submitReq(){
+ const id='SRHR-2026-'+String(51+Math.floor(Math.random()*20)).padStart(4,'0');
+ addAlert('Project Secretary',id,'New request submitted','A Directorate has submitted a new request for review.');
+ alert('Request submitted successfully. '+id+' has been routed to the Project Secretary.');
+ show('requests');
+}
+
+function cnChoose(x){
+  document.getElementById('cnstart').classList.add('hide');
+  document.getElementById('cnupload').classList.toggle('hide',x!=='upload');
+  document.getElementById('cnform').classList.toggle('hide',x!=='write');
+  if(x==='write') document.getElementById('cnmode').textContent='Online entry';
+}
+function cnExtract(){document.getElementById('cnextract').style.display='block'}
+function cnOpen(extracted){
+  document.getElementById('cnupload').classList.add('hide');document.getElementById('cnform').classList.remove('hide');
+  document.getElementById('cnmode').textContent='Extracted — review required';
+  document.getElementById('cndate').value='2026-09-08';
+  document.getElementById('cnfrom').value='Project Management Analyst, SRHR Project';
+  document.getElementById('cnto').value='Team Lead, Integrated Health Projects Administration Unit (IHPAU)';
+  document.getElementById('cnthrough').value='Project Coordinator, SRHR Project';
+  document.getElementById('cntitle').value='Transport Refunds to Nurses on the Official Handover of SRHR Drugs to MOH';
+}
+function cnPreview(){
+  document.getElementById('cnpreview').classList.remove('hide');
+  document.getElementById('pvdate').textContent=document.getElementById('cndate').value||'—';
+  document.getElementById('pvfrom').textContent=document.getElementById('cnfrom').value||'—';
+  document.getElementById('pvto').textContent=document.getElementById('cnto').value||'—';
+  document.getElementById('pvthrough').textContent=document.getElementById('cnthrough').value||'—';
+  document.getElementById('pvtitle').textContent=document.getElementById('cntitle').value||'—';
+}
+function cnAttach(){alert('Prototype: Concept Note validated and attached to the request. The production build will also cross-check title, dates, budget, activity code and implementing entity against the Request Form.');show('new');choose('online')}
+
+
+const workflow=['Directorate','Project Secretary','Chairman','IHPAU / Finance'];
+let alerts=JSON.parse(localStorage.getItem('srhrAlerts')||'[]');
+
+function saveAlerts(){localStorage.setItem('srhrAlerts',JSON.stringify(alerts));renderAlerts()}
+function addAlert(recipient,requestId,type,message){
+ const item={id:Date.now()+Math.random(),recipient,requestId,type,message,time:new Date().toLocaleString(),read:false};
+ alerts.unshift(item); saveAlerts();
+ // v10: server notification bridge. In-app still works if the API is temporarily unavailable.
+ fetch('/api/notifications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(item)}).catch(()=>{});
+}
+function renderAlerts(){
+ const count=alerts.filter(a=>!a.read).length;
+ const badge=document.getElementById('alertCount'); if(badge) badge.textContent=count;
+ const box=document.getElementById('alertsList'); if(!box)return;
+ box.innerHTML=alerts.length?alerts.map(a=>`<div class="card" style="min-height:auto;margin:10px 0;background:${a.read?'#fff':'#f7fafc'}">
+ <div style="display:flex;justify-content:space-between;gap:10px"><div><span class="badge ${a.type.includes('Query')?'warn':'info'}">${a.type}</span>
+ <b style="margin-left:7px">${a.requestId}</b></div><span class="small">${a.time}</span></div>
+ <p style="margin:10px 0 4px">${a.message}</p><div class="small">Recipient: <b>${a.recipient}</b></div>
+ <div style="margin-top:10px"><button class="btn secondary" onclick="markRead('${a.id}')">Mark read</button></div></div>`).join(''):'<p class="small">No alerts yet.</p>';
+}
+function markRead(id){let a=alerts.find(x=>String(x.id)===String(id));if(a)a.read=true;saveAlerts()}
+function openNotifications(){show('alerts');renderAlerts()}
+
+function raiseQuery(requestId,from,to){
+ const q=prompt('Enter the query / correction required:');
+ if(!q)return;
+ addAlert(to,requestId,'Query raised',`${from} raised a query: ${q}`);
+ alert(`Query sent. The submitting Directorate/designated person has been alerted for ${requestId}.`);
+}
+function sendReminder(requestId,currentStage){
+ const wf=(typeof workflowConfig!=='undefined'?workflowConfig:workflow); const idx=wf.indexOf(currentStage);
+ let recipients=[];
+ if(idx>=0) recipients=wf.slice(idx+1);
+ // If at final stage, keep reminder within the designated finance/IHPAU team.
+ if(!recipients.length && currentStage==='IHPAU / Finance') recipients=['IHPAU / Finance'];
+ if(!recipients.length){alert('There is no active stage ahead to remind.');return}
+ const note=prompt('Optional reminder message:','Please review and take the required action on this request.');
+ if(note===null)return;
+ recipients.forEach(r=>addAlert(r,requestId,'Workflow reminder',`${currentStage} sent a reminder: ${note}`));
+ alert(`Reminder sent forward to: ${recipients.join(', ')}. Passed workflow stages were not notified.`);
+}
+function reviewRequest(id){alert(`${id} opened for review. You can clear it, query it, or send a forward reminder.`)}
+function approveRequest(id){
+ addAlert('Project Secretary',id,'Approved','Chairman approved the request. Please forward it to IHPAU.');
+ addAlert('IHPAU / Finance',id,'Approval notice','The request has been approved and is moving forward for processing.');
+ alert(`${id} approved. Secretary and the next processing stage have been alerted.`);
+}
+function rejectRequest(id){
+ const why=prompt('Reason for rejection:'); if(!why)return;
+ addAlert('Directorate',id,'Request rejected',`Chairman rejected the request: ${why}`);
+ alert('Rejection recorded and the submitting Directorate/designated person has been alerted.');
+}
+function updateFinance(id){
+ const s=prompt('Enter finance/process update:','Payment processing');
+ if(!s)return;
+ addAlert('Directorate',id,'Finance update',`IHPAU / Finance update: ${s}`);
+ alert('Finance update recorded and the Directorate/designated person has been alerted.');
+}
+function recordReceipts(id){
+ addAlert('Directorate',id,'Accountability update','IHPAU recorded receipt/accountability documents for this request.');
+ alert('Receipt/accountability record updated.');
+}
+function exportRegister(){
+ const rows=[['Implementing Entity','Requesting Authority','Approving Authority','Category','Details','Activity Code','Amount','Status'],
+ ['DPPI','Directorate','Chairman','Operational','HMIS Mentorship','6.2.19','NLe 95,000','At IHPAU']];
+ const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+ const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='SRHR-RAMS-Request-Register.csv';a.click();URL.revokeObjectURL(url);
+}
+document.getElementById('role').addEventListener('change',e=>{
+ const role=e.target.value;
+ const map={'Directorate User':'dashboard','Project Secretary':'secretary','Chairman':'approval','IHPAU':'ihpau','Administrator':'admin'};
+ show(map[role]||'dashboard');
+});
+renderAlerts();
+function toggleMobileMenu(){document.querySelector('.side')?.classList.toggle('open')}
+document.addEventListener('click',e=>{if(innerWidth<=900&&e.target.closest('.nav button'))document.querySelector('.side')?.classList.remove('open')});
+
+let adminUsers=JSON.parse(localStorage.getItem('srhrUsers')||'null')||[
+ {id:1,name:'Directorate Focal Person',role:'Directorate',team:'Submitting Directorate',email:'directorate@example.gov.sl',phone:'+23200000001',inapp:true,emailOn:true,wa:true},
+ {id:2,name:'Project Secretary',role:'Project Secretary',team:'SRHR Project',email:'secretary@example.gov.sl',phone:'+23200000002',inapp:true,emailOn:true,wa:false},
+ {id:3,name:'Chairman / Approver',role:'Chairman',team:'SRHR Project',email:'chairman@example.gov.sl',phone:'+23200000003',inapp:true,emailOn:true,wa:true},
+ {id:4,name:'IHPAU Finance Focal Person',role:'IHPAU / Finance',team:'IHPAU',email:'finance@example.gov.sl',phone:'+23200000004',inapp:true,emailOn:true,wa:true}
+];
+function saveUsers(){localStorage.setItem('srhrUsers',JSON.stringify(adminUsers));renderUsers()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function renderUsers(){
+ const b=document.getElementById('userConfigBody');if(!b)return;
+ b.innerHTML=adminUsers.map(u=>`<tr><td><b>${esc(u.name)}</b></td><td><span class="badge info">${esc(u.role)}</span></td><td>${esc(u.team)}</td>
+ <td><input style="min-width:180px" value="${esc(u.email)}" onchange="setUser(${u.id},'email',this.value)"></td>
+ <td><input style="min-width:145px" value="${esc(u.phone)}" onchange="setUser(${u.id},'phone',this.value)"></td>
+ <td style="white-space:nowrap"><label><input type="checkbox" ${u.inapp?'checked':''} onchange="setUser(${u.id},'inapp',this.checked)"> In-App</label><br>
+ <label><input type="checkbox" ${u.emailOn?'checked':''} onchange="setUser(${u.id},'emailOn',this.checked)"> Email</label><br>
+ <label><input type="checkbox" ${u.wa?'checked':''} onchange="setUser(${u.id},'wa',this.checked)"> WhatsApp</label></td>
+ <td><button class="btn secondary" onclick="testUser(${u.id})">Send Test</button></td></tr>`).join('');
+}
+function setUser(id,k,v){let u=adminUsers.find(x=>x.id===id);if(u){u[k]=v;saveUsers()}}
+function addAdminUser(){
+ const name=prompt('User name:');if(!name)return;
+ const role=prompt('Workflow role (Directorate, Project Secretary, Chairman, IHPAU / Finance):','Directorate');if(!role)return;
+ adminUsers.push({id:Date.now(),name,role,team:'',email:'',phone:'',inapp:true,emailOn:false,wa:false});saveUsers();
+}
+function channelList(u){return [u.inapp&&'In-App',u.emailOn&&'Email',u.wa&&'WhatsApp'].filter(Boolean)}
+function simulateDelivery(u,req,msg){
+ let lines=[];
+ if(u.inapp){addAlert(u.role,req,'Test notification',msg);lines.push(`✅ In-App → ${u.name}`)}
+ if(u.emailOn) lines.push(u.email?`🧪 Email preview → ${u.email} (provider connection required for real delivery)`:'⚠️ Email enabled but address missing');
+ if(u.wa) lines.push(u.phone?`🧪 WhatsApp preview → ${u.phone} (WhatsApp Business API connection required for real delivery)`:'⚠️ WhatsApp enabled but number missing');
+ return lines;
+}
+function testUser(id){
+ const u=adminUsers.find(x=>x.id===id);if(!u)return;
+ const req=document.getElementById('testReq')?.value||'SRHR-TEST-001';
+ const msg='SRHR-RAMS test notification. No action is required.';
+ const lines=simulateDelivery(u,req,msg);
+ document.getElementById('testLog').innerHTML=`<b>Test for ${esc(u.name)}</b><br>${lines.join('<br>')||'⚠️ No notification channel enabled.'}`;
+ alert('Notification test completed. Check Delivery Simulation and Alerts.');
+}
+function testWorkflowReminder(){
+ const req=document.getElementById('testReq').value.trim()||'SRHR-TEST-001';
+ const stage=document.getElementById('testStage').value;
+ const msg=document.getElementById('testMsg').value.trim();
+ const idx=workflow.indexOf(stage); let stages=workflow.slice(idx+1);
+ if(!stages.length&&stage==='IHPAU / Finance')stages=['IHPAU / Finance'];
+ let targets=adminUsers.filter(u=>stages.includes(u.role)),lines=[];
+ targets.forEach(u=>lines.push(...simulateDelivery(u,req,`${stage} reminder: ${msg}`)));
+ document.getElementById('testLog').innerHTML=`<b>${esc(req)}</b><br>Triggered at: ${esc(stage)}<br>Forward recipients: ${stages.join(' → ')}<hr>${lines.join('<br>')||'No configured recipients found.'}`;
+ alert('Forward-only reminder test completed.');
+}
+function clearTestLog(){document.getElementById('testLog').textContent='No notification test has been run yet.'}
+renderUsers();
+
+
+let adminAudit=JSON.parse(localStorage.getItem('srhrAdminAudit')||'[]');
+let systemConfig=JSON.parse(localStorage.getItem('srhrSystemConfig')||'null')||{
+ requestPrefix:'SRHR',year:'2026',reminderHours:24,maxReminders:3,currency:'NLe',
+ allowAdminIntervention:true,requireReason:true,maintenance:false
+};
+let workflowConfig=JSON.parse(localStorage.getItem('srhrWorkflowConfig')||'null')||['Directorate','Project Secretary','Chairman','IHPAU / Finance'];
+
+function audit(action,detail){
+ adminAudit.unshift({time:new Date().toLocaleString(),action,detail,admin:'System Administrator'});
+ localStorage.setItem('srhrAdminAudit',JSON.stringify(adminAudit));updateAuditCount();
+}
+function updateAuditCount(){let e=document.getElementById('auditCount');if(e)e.textContent=adminAudit.length}
+function persistConfig(){localStorage.setItem('srhrSystemConfig',JSON.stringify(systemConfig));localStorage.setItem('srhrWorkflowConfig',JSON.stringify(workflowConfig))}
+function reasonFor(action){
+ if(!systemConfig.requireReason)return 'Administrative action';
+ let r=prompt(`Reason required for: ${action}`);return r&&r.trim()?r.trim():null;
+}
+function adminTool(type){
+ const w=document.getElementById('adminWorkbench'); if(!w)return;
+ if(type==='workflow'){
+  w.innerHTML=`<h3>Workflow Designer</h3><p class="small">Current order. Use ↑/↓ to change routing. Passed stages remain excluded from forward reminders.</p>
+  <div id="wfRows">${workflowConfig.map((s,i)=>`<div class="card" style="min-height:auto;margin:8px 0;display:flex;justify-content:space-between;align-items:center"><b>${i+1}. ${esc(s)}</b><div><button class="btn secondary" onclick="moveStage(${i},-1)">↑</button> <button class="btn secondary" onclick="moveStage(${i},1)">↓</button> <button class="btn secondary" onclick="renameStage(${i})">Rename</button></div></div>`).join('')}</div>
+  <button class="btn" onclick="addStage()">+ Add Stage</button>`;
+ } else if(type==='permissions'){
+  w.innerHTML=`<h3>Roles & Permissions</h3><p class="small">Prototype permission matrix. Toggle privileged capabilities by role.</p>
+  <table><thead><tr><th>Role</th><th>View All</th><th>Edit</th><th>Approve</th><th>Finance</th><th>Admin</th></tr></thead><tbody>
+  ${['Directorate','Project Secretary','Chairman','IHPAU / Finance','Administrator'].map(r=>`<tr><td><b>${r}</b></td>${['View All','Edit','Approve','Finance','Admin'].map(p=>`<td><input type="checkbox" ${r==='Administrator'?'checked':''} onchange="audit('Permission changed','${r}: ${p} = '+this.checked)"></td>`).join('')}</tr>`).join('')}</tbody></table>`;
+ } else if(type==='requests'){
+  w.innerHTML=`<h3>Request Intervention</h3><div class="formgrid"><div class="field"><label>Request ID</label><input id="adminReq" value="SRHR-2026-0050"></div><div class="field"><label>Action</label><select id="adminReqAction"><option>Reassign current owner</option><option>Move to another stage</option><option>Place on hold</option><option>Reopen closed request</option><option>Correct metadata</option></select></div></div><button class="btn" style="margin-top:12px" onclick="interveneRequest()">Apply Controlled Intervention</button><p class="small">Administrative intervention never silently rewrites history; an audit event is created.</p>`;
+ } else if(type==='notifications'){
+  w.innerHTML=`<h3>Notification & Escalation Rules</h3><div class="formgrid"><div class="field"><label>Escalate after (hours)</label><input type="number" id="remH" value="${systemConfig.reminderHours}"></div><div class="field"><label>Maximum reminders per stage</label><input type="number" id="maxR" value="${systemConfig.maxReminders}"></div></div><button class="btn" style="margin-top:12px" onclick="saveNotifRules()">Save Rules</button>`;
+ } else if(type==='entities'){
+  w.innerHTML=`<h3>Directorates & Implementing Entities</h3><p class="small">Manage organizational units and designated focal persons.</p><button class="btn" onclick="simpleAdminAction('Entity created','Create new Directorate / Implementing Entity')">+ Add Entity</button> <button class="btn secondary" onclick="simpleAdminAction('Focal person reassigned','Reassign focal person')">Reassign Focal Person</button>`;
+ } else if(type==='templates'){
+  w.innerHTML=`<h3>Forms & Template Versions</h3><p class="small">Control which Request Form and Concept Note templates are active for new submissions.</p><button class="btn" onclick="simpleAdminAction('Template version activated','Activate new template version')">Activate New Version</button> <button class="btn secondary" onclick="simpleAdminAction('Template archived','Archive template')">Archive Version</button>`;
+ } else if(type==='finance'){
+  w.innerHTML=`<h3>Finance Configuration</h3><div class="formgrid"><div class="field"><label>Primary Currency</label><select id="cfgCurrency"><option ${systemConfig.currency==='NLe'?'selected':''}>NLe</option><option ${systemConfig.currency==='USD'?'selected':''}>USD</option></select></div><div class="field"><label>Disbursement Year</label><input id="cfgYear" value="${systemConfig.year}"></div></div><button class="btn" style="margin-top:12px" onclick="saveFinanceCfg()">Save Finance Settings</button>`;
+ } else if(type==='system'){
+  w.innerHTML=`<h3>System Settings</h3><div class="formgrid"><div class="field"><label>Request Number Prefix</label><input id="cfgPrefix" value="${esc(systemConfig.requestPrefix)}"></div><div class="field"><label>Administrative reason required</label><select id="cfgReason"><option value="true" ${systemConfig.requireReason?'selected':''}>Yes</option><option value="false" ${!systemConfig.requireReason?'selected':''}>No</option></select></div></div><button class="btn" style="margin-top:12px" onclick="saveSystemCfg()">Save System Settings</button>`;
+ } else if(type==='audit'){
+  w.innerHTML=`<h3>Administrator Audit & Recovery</h3><p class="small">Privileged changes are append-only in this prototype view.</p><div style="overflow:auto"><table><thead><tr><th>Time</th><th>Administrator</th><th>Action</th><th>Detail / Reason</th></tr></thead><tbody>${adminAudit.map(a=>`<tr><td>${esc(a.time)}</td><td>${esc(a.admin)}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.detail)}</td></tr>`).join('')||'<tr><td colspan="4">No privileged actions recorded yet.</td></tr>'}</tbody></table></div><div style="margin-top:12px"><button class="btn secondary" onclick="exportAudit()">Export Audit Log</button> <button class="btn secondary" onclick="snapshotConfig()">Create Configuration Snapshot</button></div>`;
+ }
+}
+function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' → '));adminTool('workflow')}
+function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} → ${n}`);adminTool('workflow')}
+function addStage(){let n=prompt('New workflow stage name:');if(!n)return;workflowConfig.push(n);persistConfig();audit('Workflow stage added',n);adminTool('workflow')}
+function interveneRequest(){let id=document.getElementById('adminReq').value,act=document.getElementById('adminReqAction').value,r=reasonFor(act);if(!r)return;addAlert('Administrator',id,'Admin intervention',`${act}. Reason: ${r}`);audit('Request intervention',`${id}: ${act}. Reason: ${r}`);alert('Controlled intervention recorded. Original history remains preserved.')}
+function saveNotifRules(){systemConfig.reminderHours=+document.getElementById('remH').value;systemConfig.maxReminders=+document.getElementById('maxR').value;persistConfig();audit('Notification rules changed',`Escalation ${systemConfig.reminderHours}h; max reminders ${systemConfig.maxReminders}`);alert('Notification rules saved.')}
+function saveFinanceCfg(){systemConfig.currency=document.getElementById('cfgCurrency').value;systemConfig.year=document.getElementById('cfgYear').value;persistConfig();audit('Finance configuration changed',`${systemConfig.currency}; ${systemConfig.year}`);alert('Finance settings saved.')}
+function saveSystemCfg(){systemConfig.requestPrefix=document.getElementById('cfgPrefix').value;systemConfig.requireReason=document.getElementById('cfgReason').value==='true';persistConfig();audit('System configuration changed',`Prefix ${systemConfig.requestPrefix}; reason required ${systemConfig.requireReason}`);alert('System settings saved.')}
+function simpleAdminAction(action,promptText){let v=prompt(promptText+':');if(!v)return;let r=reasonFor(action);if(r===null)return;audit(action,`${v}. ${r}`);alert(action+' recorded.')}
+function exportAudit(){let rows=[['Time','Administrator','Action','Detail'],...adminAudit.map(a=>[a.time,a.admin,a.action,a.detail])];let csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');let b=new Blob([csv],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='SRHR-RAMS-Admin-Audit.csv';a.click();URL.revokeObjectURL(u)}
+function snapshotConfig(){localStorage.setItem('srhrConfigSnapshot',JSON.stringify({time:new Date().toISOString(),systemConfig,workflowConfig,adminUsers}));audit('Configuration snapshot created','System, workflow and user configuration snapshot saved locally.');alert('Configuration snapshot created.')}
+updateAuditCount();
+
+
+let srhrEntities=JSON.parse(localStorage.getItem('srhrEntities')||'null')||[
+ {id:1,name:'Directorate of Policy, Planning and Information',short:'DPPI',type:'Directorate',active:true,focal:''},
+ {id:2,name:'Directorate of Reproductive and Child Health',short:'DRCH',type:'Directorate',active:true,focal:''},
+ {id:3,name:'Directorate of Primary Health Care',short:'DPHC',type:'Directorate',active:true,focal:''},
+ {id:4,name:'Directorate of Hospital and Ambulances Service',short:'DHAS',type:'Directorate',active:true,focal:''},
+ {id:5,name:'SLeSHI',short:'SLeSHI',type:'Implementing Entity',active:true,focal:''},
+ {id:6,name:'Gender',short:'Gender',type:'Unit / Programme',active:true,focal:''},
+ {id:7,name:'NEMS',short:'NEMS',type:'Implementing Entity',active:true,focal:''},
+ {id:8,name:'NMSA',short:'NMSA',type:'Implementing Entity',active:true,focal:''},
+ {id:9,name:'Donor and Coordination',short:'Donor & Coordination',type:'Unit / Programme',active:true,focal:''},
+ {id:10,name:'COMAHS',short:'COMAHS',type:'Implementing Entity',active:true,focal:''},
+ {id:11,name:'Post Graduate',short:'Post Graduate',type:'Programme',active:true,focal:''}
+];
+function saveEntities(){localStorage.setItem('srhrEntities',JSON.stringify(srhrEntities));renderEntityManager();refreshEntitySelectors()}
+function entityStatus(e){return e.active?'<span class="badge">Active</span>':'<span class="badge warn">Inactive</span>'}
+function renderEntityManager(){
+ const w=document.getElementById('adminWorkbench');if(!w)return;
+ w.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3 style="margin-top:0">Directorates & Implementing Entities</h3><p class="small">Maintain the official list used across requests, reports, routing and user assignments. Records can be deactivated without deleting historical requests.</p></div><button class="btn" onclick="entityEditor()">+ Add Entity</button></div>
+ <div style="overflow:auto"><table><thead><tr><th>Name</th><th>Short Name</th><th>Type</th><th>Designated Focal Person</th><th>Status</th><th>Control</th></tr></thead><tbody>
+ ${srhrEntities.map(e=>`<tr><td><b>${esc(e.name)}</b></td><td>${esc(e.short)}</td><td>${esc(e.type)}</td><td>${esc(e.focal||'Not assigned')}</td><td>${entityStatus(e)}</td><td style="white-space:nowrap"><button class="btn secondary" onclick="entityEditor(${e.id})">Edit</button> <button class="btn secondary" onclick="toggleEntity(${e.id})">${e.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function entityEditor(id){
+ const e=id?srhrEntities.find(x=>x.id===id):{id:null,name:'',short:'',type:'Directorate',active:true,focal:''};
+ const w=document.getElementById('adminWorkbench');
+ w.innerHTML=`<h3>${id?'Edit':'Add'} Directorate / Implementing Entity</h3>
+ <div class="formgrid"><div class="field full"><label>Official Name</label><input id="entName" value="${esc(e.name)}"></div>
+ <div class="field"><label>Short Name / Acronym</label><input id="entShort" value="${esc(e.short)}"></div>
+ <div class="field"><label>Entity Type</label><select id="entType">${['Directorate','Implementing Entity','Unit / Programme','Programme','Other'].map(x=>`<option ${e.type===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div class="field full"><label>Designated Focal Person</label><input id="entFocal" value="${esc(e.focal)}" placeholder="Name or assigned system user"></div></div>
+ <div style="margin-top:14px"><button class="btn" onclick="saveEntity(${id||'null'})">Save Entity</button> <button class="btn secondary" onclick="renderEntityManager()">Cancel</button></div>`;
+}
+function saveEntity(id){
+ const name=document.getElementById('entName').value.trim();if(!name){alert('Official name is required.');return}
+ const data={name,short:document.getElementById('entShort').value.trim(),type:document.getElementById('entType').value,focal:document.getElementById('entFocal').value.trim()};
+ if(id){let e=srhrEntities.find(x=>x.id===id);Object.assign(e,data);audit('Entity modified',`${name} (${data.short})`)}
+ else{srhrEntities.push({id:Date.now(),...data,active:true});audit('Entity added',`${name} (${data.short})`)}
+ saveEntities();alert('Entity saved.');renderEntityManager();
+}
+function toggleEntity(id){
+ let e=srhrEntities.find(x=>x.id===id);if(!e)return;
+ const action=e.active?'deactivate':'activate',r=reasonFor(`${action} ${e.name}`);if(!r)return;
+ e.active=!e.active;audit(`Entity ${e.active?'activated':'deactivated'}`,`${e.name}. Reason: ${r}`);saveEntities();
+}
+function refreshEntitySelectors(){
+ const sels=[...document.querySelectorAll('select')].filter(s=>/implementing|directorate/i.test((s.previousElementSibling?.textContent||'')+' '+(s.id||'')));
+ sels.forEach(s=>{
+  const current=s.value,options=srhrEntities.filter(e=>e.active).map(e=>`<option value="${esc(e.short||e.name)}">${esc(e.name)}</option>`).join('');
+  if(options){s.innerHTML=options;if([...s.options].some(o=>o.value===current))s.value=current}
+ });
+}
+const _adminToolEntity=adminTool;
+adminTool=function(type){if(type==='entities'){renderEntityManager();return}_adminToolEntity(type)}
+refreshEntitySelectors();
+
+
+const RBAC_ROLES=['Directorate User','Project Secretary','Chairman','IHPAU','Administrator'];
+const VIEW_LABELS={
+ dashboard:'Dashboard',new:'New Request',concept:'Concept Note',requests:'My Requests',
+ secretary:'Secretary Desk',approval:'Chairman Approval',ihpau:'IHPAU Desk',
+ admin:'Admin Control Centre',alerts:'Alerts & Reminders',register:'Automatic Register'
+};
+const DEFAULT_RBAC={
+ 'Directorate User':{views:['dashboard','new','concept','requests','alerts'],home:'dashboard',scope:'own_entity'},
+ 'Project Secretary':{views:['dashboard','secretary','requests','alerts','register'],home:'secretary',scope:'all_requests'},
+ 'Chairman':{views:['dashboard','approval','alerts'],home:'approval',scope:'approval_queue'},
+ 'IHPAU':{views:['dashboard','ihpau','alerts','register'],home:'ihpau',scope:'ihpau_queue'},
+ 'Administrator':{views:Object.keys(VIEW_LABELS),home:'admin',scope:'all'}
+};
+let rbac=JSON.parse(localStorage.getItem('srhrRBAC')||'null')||JSON.parse(JSON.stringify(DEFAULT_RBAC));
+function saveRBAC(){localStorage.setItem('srhrRBAC',JSON.stringify(rbac));applyRBAC();audit('Interface permissions updated','Role-based menu/dashboard configuration changed.')}
+function currentRole(){return document.getElementById('role')?.value||'Directorate User'}
+function allowedViews(role){return (rbac[role]||DEFAULT_RBAC[role]||{views:[]}).views}
+function applyRBAC(){
+ const role=currentRole(),allowed=allowedViews(role);
+ document.querySelectorAll('.nav button[data-v]').forEach(b=>{b.style.display=allowed.includes(b.dataset.v)?'flex':'none'});
+ document.querySelectorAll('.view').forEach(v=>{if(!allowed.includes(v.id)&&v.classList.contains('active'))v.classList.remove('active')});
+ const active=document.querySelector('.view.active');
+ if(!active||!allowed.includes(active.id)){show((rbac[role]||DEFAULT_RBAC[role]).home)}
+ const title=document.querySelector('.top h1'); if(title) title.dataset.role=role;
+}
+const _showRBAC=show;
+show=function(v){
+ const role=currentRole(),allowed=allowedViews(role);
+ if(!allowed.includes(v)&&role!=='Administrator'){alert('This area is not available to your role.');return}
+ _showRBAC(v);
+};
+function permissionDesigner(){
+ const w=document.getElementById('adminWorkbench');if(!w)return;
+ w.innerHTML=`<h3>Role Interface Designer</h3>
+ <p class="small">All users share one SRHR-RAMS shell. The Administrator decides which menus, workspaces and dashboards each role can see. Hidden areas are also blocked by the permission engine, not merely removed from the menu.</p>
+ <div style="overflow:auto"><table><thead><tr><th>Interface Area</th>${RBAC_ROLES.map(r=>`<th>${esc(r)}</th>`).join('')}</tr></thead><tbody>
+ ${Object.entries(VIEW_LABELS).map(([v,label])=>`<tr><td><b>${label}</b></td>${RBAC_ROLES.map(r=>`<td><input type="checkbox" ${allowedViews(r).includes(v)?'checked':''} ${r==='Administrator'&&v==='admin'?'disabled':''} onchange="toggleRoleView('${r}','${v}',this.checked)"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ <h3>Default Landing Dashboard</h3>
+ <div class="formgrid">${RBAC_ROLES.map(r=>`<div class="field"><label>${r}</label><select onchange="setRoleHome('${r}',this.value)">${Object.entries(VIEW_LABELS).filter(([v])=>allowedViews(r).includes(v)).map(([v,l])=>`<option value="${v}" ${(rbac[r]||{}).home===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
+ <h3>Data Visibility Scope</h3>
+ <div class="formgrid">${RBAC_ROLES.map(r=>`<div class="field"><label>${r}</label><select onchange="setRoleScope('${r}',this.value)">
+ <option value="own_entity" ${(rbac[r]||{}).scope==='own_entity'?'selected':''}>Own Directorate / Entity only</option>
+ <option value="approval_queue" ${(rbac[r]||{}).scope==='approval_queue'?'selected':''}>Assigned approval queue only</option>
+ <option value="ihpau_queue" ${(rbac[r]||{}).scope==='ihpau_queue'?'selected':''}>IHPAU processing queue only</option>
+ <option value="all_requests" ${(rbac[r]||{}).scope==='all_requests'?'selected':''}>All requests</option>
+ <option value="all" ${(rbac[r]||{}).scope==='all'?'selected':''}>Full system</option></select></div>`).join('')}</div>
+ <div style="margin-top:14px"><button class="btn secondary" onclick="resetRBAC()">Restore Recommended Defaults</button></div>`;
+}
+function toggleRoleView(role,v,on){
+ rbac[role]=rbac[role]||JSON.parse(JSON.stringify(DEFAULT_RBAC[role]));
+ let s=new Set(rbac[role].views);on?s.add(v):s.delete(v);rbac[role].views=[...s];
+ if(!rbac[role].views.includes(rbac[role].home))rbac[role].home=rbac[role].views[0]||'dashboard';
+ saveRBAC();permissionDesigner();
+}
+function setRoleHome(role,v){rbac[role].home=v;saveRBAC()}
+function setRoleScope(role,v){rbac[role].scope=v;saveRBAC()}
+function resetRBAC(){let r=reasonFor('restore recommended role defaults');if(!r)return;rbac=JSON.parse(JSON.stringify(DEFAULT_RBAC));localStorage.setItem('srhrRBAC',JSON.stringify(rbac));audit('RBAC defaults restored',r);applyRBAC();permissionDesigner()}
+const _adminToolRBAC=adminTool;
+adminTool=function(type){if(type==='permissions'){permissionDesigner();return}_adminToolRBAC(type)}
+const roleSelect=document.getElementById('role');
+if(roleSelect){
+ roleSelect.onchange=null;
+ roleSelect.addEventListener('change',e=>{
+   const role=e.target.value, cfg=rbac[role]||DEFAULT_RBAC[role];
+   applyRBAC(); _showRBAC(cfg.home);
+ });
+}
+applyRBAC();
+
+
+// Production authentication bridge: Cloudflare Worker + D1 secure session.
+let authSession=null;
+let authUsers=[];
+
+async function authApi(path,options={}){
+ const r=await fetch(path,{credentials:'include',...options,headers:{'content-type':'application/json',...(options.headers||{})}});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+ return d;
+}
+
+async function login(){
+ const username=document.getElementById('loginUser').value.trim();
+ const password=document.getElementById('loginPass').value;
+ const err=document.getElementById('loginError');err.textContent='';
+ try{
+   const x=await authApi('/api/auth/login',{method:'POST',body:JSON.stringify({username,password})});
+   authSession=x.user; enterApp(x.user);
+ }catch(e){err.textContent=e.message==='invalid_credentials'?'Invalid username or password.':e.message}
+}
+
+function enterApp(a){
+ document.getElementById('loginScreen').style.display='none';
+ document.getElementById('secureApp').style.display='block';
+ const rs=document.getElementById('role');rs.value=a.role;rs.disabled=a.role!=='Administrator';
+ applyRBAC();_showRBAC((rbac[a.role]||DEFAULT_RBAC[a.role]).home);
+ if(a.mustChange||a.must_change)setTimeout(()=>changeOwnPassword(a.id,true),250);
+}
+
+async function logout(){
+ await authApi('/api/auth/logout',{method:'POST'}).catch(()=>{});
+ authSession=null;
+ document.getElementById('secureApp').style.display='none';
+ document.getElementById('loginScreen').style.display='grid';
+ document.getElementById('loginPass').value='';
+}
+
+function passwordStrong(p){return p.length>=10&&/[A-Z]/.test(p)&&/[a-z]/.test(p)&&/[0-9]/.test(p)}
+
+async function changeOwnPassword(id,required=false){
+ const p=prompt((required?'First sign-in: ':'')+'Enter a new password (10+ characters with upper/lowercase and a number):');
+ if(p===null){if(required)logout();return}
+ if(!passwordStrong(p)){alert('Password does not meet the minimum requirements.');if(required)changeOwnPassword(id,true);return}
+ try{
+   await authApi('/api/auth/password',{method:'POST',body:JSON.stringify({password:p})});
+   alert('Password changed successfully. Please sign in again.');
+   location.reload();
+ }catch(e){alert(e.message)}
+}
+
+async function accountManager(){
+ const w=document.getElementById('adminWorkbench');if(!w)return;
+ try{authUsers=await authApi('/api/admin/users')}catch(e){w.innerHTML=`<p>${esc(e.message)}</p>`;return}
+ w.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><h3 style="margin-top:0">User Accounts & Passwords</h3><p class="small">Live D1 accounts. Administrator can create accounts, reset passwords, lock/unlock access and change roles.</p></div><button class="btn" onclick="newAccount()">+ Create Account</button></div>
+ <div style="overflow:auto"><table><thead><tr><th>User</th><th>Username</th><th>Role</th><th>Entity</th><th>Status</th><th>Password</th><th>Control</th></tr></thead><tbody>
+ ${authUsers.map(a=>`<tr><td><b>${esc(a.name)}</b></td><td>${esc(a.username)}</td><td>${esc(a.role)}</td><td>${esc(a.entity||'')}</td><td>${a.active?'<span class="badge">Active</span>':'<span class="badge warn">Locked</span>'}</td><td>${a.must_change?'<span class="badge warn">Change required</span>':'Configured'}</td><td style="white-space:nowrap"><button class="btn secondary" onclick="resetPassword('${a.id}')">Reset</button> <button class="btn secondary" onclick="toggleAccount('${a.id}',${a.active?1:0})">${a.active?'Lock':'Unlock'}</button> <button class="btn secondary" onclick="editAccountRole('${a.id}','${esc(a.role)}')">Role</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+async function newAccount(){
+ const name=prompt('Full name:');if(!name)return;
+ const username=prompt('Username:');if(!username)return;
+ const role=prompt('Role: Directorate User, Project Secretary, Chairman, IHPAU, or Administrator','Directorate User');
+ if(!RBAC_ROLES.includes(role)){alert('Invalid role.');return}
+ const entity=prompt('Directorate / Implementing Entity (optional):','')||'';
+ const password=prompt('Temporary password (10+ characters):','Welcome@123');
+ if(!password)return;
+ try{
+   await authApi('/api/admin/users',{method:'POST',body:JSON.stringify({name,username,password,role,entity})});
+   audit('Account created',`${username} — ${role}`);await accountManager();
+ }catch(e){alert(e.message)}
+}
+
+async function resetPassword(id){
+ const a=authUsers.find(x=>String(x.id)===String(id));if(!a)return;
+ const r=reasonFor(`reset password for ${a.username}`);if(!r)return;
+ try{
+   const x=await authApi(`/api/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({reset_password:true})});
+   audit('Password reset',`${a.username}. Reason: ${r}`);await accountManager();
+   alert(`Temporary password for ${a.username}: ${x.temporary_password}\nThe user must change it after sign-in.`);
+ }catch(e){alert(e.message)}
+}
+
+async function toggleAccount(id,active){
+ const a=authUsers.find(x=>String(x.id)===String(id));if(!a)return;
+ const next=!Boolean(active);const r=reasonFor(`${next?'unlock':'lock'} ${a.username}`);if(!r)return;
+ try{
+   await authApi(`/api/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({active:next})});
+   audit(next?'Account unlocked':'Account locked',`${a.username}. Reason: ${r}`);await accountManager();
+ }catch(e){alert(e.message)}
+}
+
+async function editAccountRole(id,current){
+ const role=prompt('New role:',current);if(!RBAC_ROLES.includes(role)){alert('Invalid role.');return}
+ const r=reasonFor(`change role to ${role}`);if(!r)return;
+ try{
+   await authApi(`/api/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({role})});
+   audit('Account role changed',`${id}: ${current} → ${role}. Reason: ${r}`);await accountManager();
+ }catch(e){alert(e.message)}
+}
+
+const _adminToolAuth=adminTool;
+adminTool=function(type){if(type==='accounts'){accountManager();return}_adminToolAuth(type)}
+
+document.getElementById('loginPass')?.addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+
+(async()=>{
+ try{
+   const x=await authApi('/api/auth/me');
+   authSession=x.user;enterApp(x.user);
+ }catch{}
+})();
+</script>
+</div></body></html>

@@ -1,0 +1,1 @@
+{"$schema":"node_modules/wrangler/config-schema.json","name":"srhr-rams","main":"src/index.js","compatibility_date":"2026-10-06","assets":{"directory":"./public","binding":"ASSETS"},"d1_databases":[{"binding":"DB","database_name":"srhr-rams-db","database_id":"f6f6049d-e762-4641-90dd-22029cf24723"}]}

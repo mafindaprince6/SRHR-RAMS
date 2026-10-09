@@ -1,0 +1,24 @@
+PRAGMA foreign_keys=ON;
+CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,username TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL,entity TEXT,active INTEGER NOT NULL DEFAULT 1,must_change INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE entities(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL UNIQUE,acronym TEXT,type TEXT DEFAULT 'Implementing Entity',active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE requests(id TEXT PRIMARY KEY,request_number TEXT NOT NULL UNIQUE,title TEXT NOT NULL,request_type TEXT NOT NULL CHECK(request_type IN ('Operational','Procurement')),implementing_entity TEXT NOT NULL,requesting_authority TEXT,approving_authority TEXT DEFAULT 'Chairman',expenditure_category TEXT,details TEXT,objective TEXT,activity_code TEXT,amount_nle REAL NOT NULL DEFAULT 0,amount_usd REAL NOT NULL DEFAULT 0,location TEXT,target_output TEXT,deliverable TEXT,timeline TEXT,procurement_method TEXT,estimated_completion TEXT,actual_completion TEXT,disbursement_year TEXT,status TEXT NOT NULL,current_stage TEXT NOT NULL,comments TEXT,created_by INTEGER REFERENCES users(id),created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE budget_lines(id INTEGER PRIMARY KEY AUTOINCREMENT,request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,description TEXT NOT NULL,quantity REAL DEFAULT 1,unit_cost REAL DEFAULT 0,total REAL DEFAULT 0);
+CREATE TABLE concept_notes(id TEXT PRIMARY KEY,request_id TEXT NOT NULL UNIQUE REFERENCES requests(id) ON DELETE CASCADE,background TEXT,problem_statement TEXT,goal TEXT,specific_objectives TEXT,methodology TEXT,target_participants TEXT,expected_outputs TEXT,expected_outcomes TEXT,implementation_arrangements TEXT,monitoring TEXT,risks TEXT,conclusion TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE documents(id TEXT PRIMARY KEY,request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,kind TEXT NOT NULL,file_name TEXT NOT NULL,storage_key TEXT,mime_type TEXT,uploaded_by INTEGER REFERENCES users(id),created_at TEXT NOT NULL);
+CREATE TABLE receipts(id TEXT PRIMARY KEY,request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,reference_number TEXT,amount REAL DEFAULT 0,submitted_by INTEGER REFERENCES users(id),verification_status TEXT NOT NULL DEFAULT 'Pending',comments TEXT,created_at TEXT NOT NULL,verified_at TEXT);
+CREATE TABLE notifications(id TEXT PRIMARY KEY,recipient_user_id INTEGER REFERENCES users(id),recipient_role TEXT,request_id TEXT,message TEXT NOT NULL,type TEXT NOT NULL,read_at TEXT,created_at TEXT NOT NULL);
+CREATE TABLE audit_log(id TEXT PRIMARY KEY,actor_user_id INTEGER REFERENCES users(id),action TEXT NOT NULL,request_id TEXT,details TEXT,created_at TEXT NOT NULL);
+CREATE TABLE system_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX idx_requests_stage ON requests(current_stage,status);
+CREATE INDEX idx_requests_entity ON requests(implementing_entity);
+CREATE INDEX idx_notifications_user ON notifications(recipient_user_id,created_at);
+INSERT INTO entities(name,acronym) VALUES
+('Directorate of Policy, Planning and Information','DPPI'),('Directorate of Reproductive and Child Health','DRCH'),('Directorate of Primary Health Care','DPHC'),('Directorate of Hospital and Ambulances Service','DHAS'),('Sierra Leone Social Health Insurance','SLeSHI'),('Gender','GENDER'),('National Emergency Medical Services','NEMS'),('National Medical Supplies Agency','NMSA'),('Donor and Coordination','DONOR'),('College of Medicine and Allied Health Sciences','COMAHS'),('Post Graduate','POST GRADUATE');
+INSERT INTO users(name,username,password_hash,role,entity) VALUES
+('Directorate User','directorate','pbkdf2_sha256$120000$VjDs71S/EoAVr5j6ZoucBw==$L3hBfBhhwAO6okqZLtW57HfLS+unxK7PI+D8+hdVLVY=','Directorate User','DPPI'),
+('Project Secretary','secretary','pbkdf2_sha256$120000$XGMyDSR8uRCYv7fNbardwQ==$/1UBsUUrGbskNSuNfSn7L7nQqfs+iPt4VJM2RC0rAs4=','Project Secretary','SRHR Project'),
+('Chairman','chairman','pbkdf2_sha256$120000$79joC/gbgUJTYfUqRR3VfA==$ULYNQMEuDfLDMZg7Z50m4Qbau73wNNN8tv58h/8s1Vk=','Chairman','SRHR Project'),
+('IHPAU Finance','finance','pbkdf2_sha256$120000$m1w75esChpVQTW0PFL+YJw==$trcHITf7mGI++yAk6jW54uNM02XD+xMgS2ceztb93Bo=','IHPAU','IHPAU'),
+('System Administrator','admin','pbkdf2_sha256$120000$h7s6IF69YE6hzmEPdGu4MQ==$A9Vs+z7zHO8nOZxToOlaJ0VQcmk8aziLh5yWWj1RSx4=','Administrator','System');
+INSERT INTO system_settings(key,value) VALUES('request_prefix','SRHR'),('currency','NLe'),('reminder_hours','24'),('max_reminders','3');

@@ -1,0 +1,9 @@
+{
+  "name": "srhr-rams-v13-full-supreme-admin",
+  "private": true,
+  "version": "13.0.0",
+  "scripts": {
+    "check": "node --check src/index.js",
+    "deploy": "wrangler deploy"
+  }
+}
