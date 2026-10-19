@@ -1893,6 +1893,8 @@ export default {
           SELECT
             COUNT(*) total,
             SUM(CASE WHEN status='Approved' THEN 1 ELSE 0 END) approved,
+            SUM(CASE WHEN status='Awaiting Approval' THEN 1 ELSE 0 END) awaiting_approval,
+            SUM(CASE WHEN current_stage='IHPAU / Finance' AND status!='Closed' THEN 1 ELSE 0 END) at_ihpau,
             SUM(CASE WHEN status='Closed' THEN 1 ELSE 0 END) closed,
             COALESCE(SUM(amount_nle),0) requested
           FROM requests
@@ -1901,9 +1903,12 @@ export default {
         );
       if(scope.args.length)dash=dash.bind(...scope.args);
       const row=await dash.first();
-
-
-      return J(row);
+      let recent=env.DB.prepare(
+        `SELECT request_number,request_type,title,amount_nle,status,current_stage FROM requests WHERE ${scope.sql} ORDER BY updated_at DESC LIMIT 5`
+      );
+      if(scope.args.length)recent=recent.bind(...scope.args);
+      const recentRows=await recent.all();
+      return J({...row,recent:recentRows.results});
 
     }
 

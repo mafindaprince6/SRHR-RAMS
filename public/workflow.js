@@ -13,6 +13,30 @@ function renderQueue(id,rows,cells){
   if(!body)return;
   body.innerHTML=rows.length?rows.map(row=>`<tr>${cells(row)}</tr>`).join(''):'<tr><td colspan="5" class="small">Nothing is waiting at this desk.</td></tr>';
 }
+function dashboardStatusBadge(row){
+  const s=row.status||'';
+  if(s==='Closed')return '<span class="badge">Closed</span>';
+  if(row.current_stage==='IHPAU / Finance')return '<span class="badge info">At IHPAU</span>';
+  if(s==='Awaiting Approval')return '<span class="badge warn">Awaiting approval</span>';
+  if(s==='Query Raised')return '<span class="badge warn">Query raised</span>';
+  return `<span class="badge">${esc(s)}</span>`;
+}
+async function loadDashboard(){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v??'—')};
+  const body=document.getElementById('dashboardRecent');
+  if(!body)return;
+  try{
+    const data=await workflowApi('/api/dashboard');
+    set('dashTotal',data.total??0);
+    set('dashAwaiting',data.awaiting_approval??0);
+    set('dashIhpau',data.at_ihpau??0);
+    set('dashClosed',data.closed??0);
+    const rows=data.recent||[];
+    body.innerHTML=rows.length?rows.map(row=>`<tr><td>${esc(row.request_number)}</td><td>${esc(row.request_type)}</td><td>${esc(row.title)}</td><td>${moneyText(row.amount_nle)}</td><td>${dashboardStatusBadge(row)}</td></tr>`).join(''):'<tr><td colspan="5" class="small">No requests in your scope yet.</td></tr>';
+  }catch(error){
+    body.innerHTML=`<tr><td colspan="5" class="small">${esc(error.message)}</td></tr>`;
+  }
+}
 async function loadWorkflowQueues(){
   let rows=[];
   try{rows=await workflowApi('/api/requests')}
@@ -160,7 +184,9 @@ async function loadServerAlerts(){
 const workflowShow=show;
 show=function(view){
   const result=workflowShow(view);
+  if(view==='dashboard'&&document.getElementById('dashboard')?.classList.contains('active'))loadDashboard();
   if(['requests','secretary','approval','ihpau'].includes(view)&&document.getElementById(view)?.classList.contains('active'))loadWorkflowQueues();
   if(view==='alerts'&&document.getElementById('alerts')?.classList.contains('active'))loadServerAlerts();
   return result;
 };
+window.loadDashboard=loadDashboard;

@@ -29,6 +29,7 @@ See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the full Stage 7 checklist.
 | [UPDATE-NOTES.md](UPDATE-NOTES.md) | Migration order and feature notes by stage |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deploy, rollback, smoke tests |
 | [docs/RECOVERY.md](docs/RECOVERY.md) | Backup, integrity checks, legal hold |
+| [docs/GO-LIVE.md](docs/GO-LIVE.md) | Operator runbook (login, migrate, deploy) |
 
 ## Project layout
 

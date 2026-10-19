@@ -323,15 +323,12 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div style="font:800 clamp(22px,2.6vw,29px)/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
 <div style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
 <div style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" onclick="show('new')"><svg class="ico"><use href="#i-plus"></use></svg> Create New Request</button></div></div></div>
-<div class="cards"><div class="card"><div class="label">MY REQUESTS</div><div class="metric">12</div></div><div class="card"><div class="label">AWAITING APPROVAL</div><div class="metric">3</div></div><div class="card"><div class="label">AT IHPAU</div><div class="metric">4</div></div><div class="card"><div class="label">COMPLETED</div><div class="metric">5</div></div></div>
+<div class="cards"><div class="card"><div class="label">IN SCOPE</div><div class="metric" id="dashTotal">—</div></div><div class="card"><div class="label">AWAITING APPROVAL</div><div class="metric" id="dashAwaiting">—</div></div><div class="card"><div class="label">AT IHPAU</div><div class="metric" id="dashIhpau">—</div></div><div class="card"><div class="label">COMPLETED</div><div class="metric" id="dashClosed">—</div></div></div>
 <h2>Create a request</h2><div class="actions">
 <div class="action" onclick="show('new');choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
 <div class="action" onclick="show('new');choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
 </div>
-<div class="panel"><h3>Recent Requests</h3><div class="tableWrap"><table><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr>
-<tr><td>SRHR-2026-0047</td><td>Operational</td><td>Administrative supportive supervision</td><td>NLe 348,000</td><td><span class="badge info">At IHPAU</span></td></tr>
-<tr><td>SRHR-2026-0046</td><td>Procurement</td><td>ICT equipment</td><td>NLe 126,500</td><td><span class="badge warn">Awaiting receipts</span></td></tr>
-<tr><td>SRHR-2026-0045</td><td>Operational</td><td>Training activity</td><td>NLe 82,000</td><td><span class="badge">Approved</span></td></tr></table></div>
+<div class="panel"><h3>Recent Requests</h3><div class="tableWrap"><table><thead><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead><tbody id="dashboardRecent"><tr><td colspan="5" class="small">Sign in to load live requests.</td></tr></tbody></table></div>
 </section>
 
 <section id="new" class="view">
@@ -1042,6 +1039,7 @@ function enterApp(a){
  const rs=document.getElementById('role');rs.value=a.role;rs.disabled=a.role!=='Administrator';
  applyRBAC();_showRBAC((rbac[a.role]||DEFAULT_RBAC[a.role]).home);
  startSharedRate();
+ if(typeof loadDashboard==='function')loadDashboard();
  if(a.mustChange||a.must_change)setTimeout(()=>changeOwnPassword(a.id,true),250);
 }
 
