@@ -45,8 +45,8 @@ See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the full Stage 7 checklist.
 
 Remote: `https://github.com/mafindaprince6/SRHR-RAMS.git`
 
-Push your branch after tests pass:
+Active development branch: **`maliaka`**. Merge into **`main`** when ready:
 
-```powershell
-git push -u origin HEAD
-```
+1. Open [Compare & pull request](https://github.com/mafindaprince6/SRHR-RAMS/compare/main...maliaka) on GitHub.
+2. Confirm CI checks pass.
+3. Merge, then deploy from `main` and run `.\scripts\apply-migrations.ps1 -Remote` once.

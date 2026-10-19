@@ -35,9 +35,13 @@ Confirm with a query or by hitting `/api/archive` (not 503 migration_required).
 | Retention & reporting | `migrations/004_retention.sql`, `public/reports.js`, `docs/RECOVERY.md` | `tests/retention-reporting.test.mjs` |
 | USD rate & budget UI | `public/finance.js` | `tests/finance-rate.test.mjs`, `tests/finance-ui.test.mjs` |
 
+## CI
+
+On push to `main` or `maliaka`, GitHub Actions runs `node --check src/index.js` and the full test suite.
+
 ## Known limitations
 
 - Excel/PDF concept-note extraction remains stubbed in the UI.
-- Some admin console panels (workflow designer, permission matrix) still use localStorage prototypes; record control, audit, and desks use the live API.
+- Some admin console panels (workflow designer, permission matrix) still use localStorage prototypes; legal hold, record control, audit, desks, and archive use the live API.
 - Document storage requires R2 binding `DOCUMENTS` (not in default `wrangler.jsonc`).
 - Retention years in `retention_policies` are catalogue defaults until the Ministry publishes official schedules.

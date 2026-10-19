@@ -815,7 +815,7 @@ function adminTool(type){
   <table><thead><tr><th>Role</th><th>View All</th><th>Edit</th><th>Approve</th><th>Finance</th><th>Admin</th></tr></thead><tbody>
   ${['Directorate','Project Secretary','Chairman','IHPAU / Finance','Administrator'].map(r=>`<tr><td><b>${r}</b></td>${['View All','Edit','Approve','Finance','Admin'].map(p=>`<td><input type="checkbox" ${r==='Administrator'?'checked':''} onchange="audit('Permission changed','${r}: ${p} = '+this.checked)"></td>`).join('')}</tr>`).join('')}</tbody></table>`;
  } else if(type==='requests'){
-  w.innerHTML=`<h3>Request Intervention</h3><div class="formgrid"><div class="field"><label>Request ID</label><input id="adminReq" value="SRHR-2026-0050"></div><div class="field"><label>Action</label><select id="adminReqAction"><option>Reassign current owner</option><option>Move to another stage</option><option>Place on hold</option><option>Reopen closed request</option><option>Correct metadata</option></select></div></div><button class="btn" style="margin-top:12px" onclick="interveneRequest()">Apply Controlled Intervention</button><p class="small">Administrative intervention never silently rewrites history; an audit event is created.</p>`;
+  w.innerHTML=`<h3>Request Intervention</h3><div class="formgrid"><div class="field"><label>Request reference or ID</label><input id="adminReq" value="SRHR-2026-0050"></div><div class="field"><label>Action</label><select id="adminReqAction"><option>Place legal hold</option><option>Release legal hold</option><option>Reassign current owner</option><option>Move to another stage</option><option>Reopen closed request</option><option>Correct metadata</option></select></div><div class="field full"><label for="adminReqNote">Reason</label><textarea id="adminReqNote" placeholder="Required for every intervention"></textarea></div></div><button class="btn" style="margin-top:12px" onclick="interveneRequest()">Apply Controlled Intervention</button><p class="small">Legal hold and release call the server immediately. Other actions remain logged here until a dedicated API is added.</p>`;
  } else if(type==='notifications'){
   w.innerHTML=`<h3>Notification & Escalation Rules</h3><div class="formgrid"><div class="field"><label>Escalate after (hours)</label><input type="number" id="remH" value="${systemConfig.reminderHours}"></div><div class="field"><label>Maximum reminders per stage</label><input type="number" id="maxR" value="${systemConfig.maxReminders}"></div></div><button class="btn" style="margin-top:12px" onclick="saveNotifRules()">Save Rules</button>`;
  } else if(type==='entities'){
@@ -855,7 +855,27 @@ async function loadServerAuditLog(){
 function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' > '));adminTool('workflow')}
 function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} > ${n}`);adminTool('workflow')}
 function addStage(){let n=prompt('New workflow stage name:');if(!n)return;workflowConfig.push(n);persistConfig();audit('Workflow stage added',n);adminTool('workflow')}
-function interveneRequest(){let id=document.getElementById('adminReq').value,act=document.getElementById('adminReqAction').value,r=reasonFor(act);if(!r)return;addAlert('Administrator',id,'Admin intervention',`${act}. Reason: ${r}`);audit('Request intervention',`${id}: ${act}. Reason: ${r}`);alert('Controlled intervention recorded. Original history remains preserved.')}
+async function interveneRequest(){
+ const id=document.getElementById('adminReq').value.trim();
+ const act=document.getElementById('adminReqAction').value;
+ let r=(document.getElementById('adminReqNote')?.value||'').trim();
+ if(!r&&typeof reasonFor==='function')r=reasonFor(act);
+ if(!r){alert('A reason is required.');return}
+ if(act==='Place legal hold'||act==='Release legal hold'){
+  const action=act==='Place legal hold'?'legal_hold':'release_legal_hold';
+  try{
+   const res=await fetch('/api/admin/records/'+encodeURIComponent(id)+'/control',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action,note:r})});
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(data.message||data.error||'Request failed');
+   audit('Request intervention',`${id}: ${act}. ${r}`);
+   alert(act==='Place legal hold'?'Legal hold applied on the server.':'Legal hold released on the server.');
+   return;
+  }catch(error){alert(error.message);return}
+ }
+ addAlert('Administrator',id,'Admin intervention',`${act}. Reason: ${r}`);
+ audit('Request intervention',`${id}: ${act}. Reason: ${r}`);
+ alert('Intervention noted locally. Workflow history on the server is unchanged for this action type.');
+}
 function saveNotifRules(){systemConfig.reminderHours=+document.getElementById('remH').value;systemConfig.maxReminders=+document.getElementById('maxR').value;persistConfig();audit('Notification rules changed',`Escalation ${systemConfig.reminderHours}h; max reminders ${systemConfig.maxReminders}`);alert('Notification rules saved.')}
 function saveFinanceCfg(){systemConfig.currency=document.getElementById('cfgCurrency').value;systemConfig.year=document.getElementById('cfgYear').value;persistConfig();audit('Finance configuration changed',`${systemConfig.currency}; ${systemConfig.year}`);alert('Finance settings saved.')}
 function saveSystemCfg(){systemConfig.requestPrefix=document.getElementById('cfgPrefix').value;systemConfig.requireReason=document.getElementById('cfgReason').value==='true';persistConfig();audit('System configuration changed',`Prefix ${systemConfig.requestPrefix}; reason required ${systemConfig.requireReason}`);alert('System settings saved.')}

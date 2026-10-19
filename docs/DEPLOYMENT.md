@@ -11,30 +11,28 @@
 From the project root:
 
 ```powershell
-node --check src/index.js
-node --test tests/*.test.mjs
+npm run check
+npm test
 ```
 
-All tests should pass (23 as of Stage 7).
+All tests should pass (23 as of Stage 7). GitHub Actions runs the same checks on push to `main` or `maliaka` (see `.github/workflows/ci.yml`).
 
 ## Apply migrations (production D1)
 
-Run in order on the **remote** database, once per environment:
+Use the helper script (continues if a step was already applied):
+
+```powershell
+.\scripts\apply-migrations.ps1           # local D1
+.\scripts\apply-migrations.ps1 -Remote   # production D1
+```
+
+Or run each file manually:
 
 ```powershell
 npx wrangler d1 execute srhr-rams-db --remote --file=migrations/001_archive.sql
 npx wrangler d1 execute srhr-rams-db --remote --file=migrations/002_workflow.sql
 npx wrangler d1 execute srhr-rams-db --remote --file=migrations/003_finance.sql
 npx wrangler d1 execute srhr-rams-db --remote --file=migrations/004_retention.sql
-```
-
-Local development:
-
-```powershell
-npx wrangler d1 execute srhr-rams-db --local --file=migrations/001_archive.sql
-npx wrangler d1 execute srhr-rams-db --local --file=migrations/002_workflow.sql
-npx wrangler d1 execute srhr-rams-db --local --file=migrations/003_finance.sql
-npx wrangler d1 execute srhr-rams-db --local --file=migrations/004_retention.sql
 ```
 
 Migrations are additive (`IF NOT EXISTS` / `ADD COLUMN`). Re-running a file may error on duplicate columns; that usually means it was already applied.
