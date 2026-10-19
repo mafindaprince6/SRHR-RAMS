@@ -209,6 +209,33 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  input,select,textarea{font-size:16px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.archiveHead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.archiveSearchBar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+.archiveSearchBar .field{flex:1;min-width:min(100%,240px);margin:0}
+.archiveTools{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:12px 0}
+.archiveTools .field{min-width:160px;margin:0}
+.archiveMore{margin:4px 0 8px}
+.archiveMore summary{cursor:pointer;font:700 13px "DM Sans";color:var(--accent)}
+.archiveMore:not([open]) > :not(summary){display:none}
+.archiveFilters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.archiveResult{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;margin:8px 0;cursor:pointer;font:inherit;color:inherit}
+.archiveResult:hover,.archiveResult:focus-visible{border-color:var(--accent);outline:2px solid var(--ring);outline-offset:2px}
+.archiveResultTop{display:flex;justify-content:space-between;gap:8px;width:100%;align-items:center}
+.archiveRef{font:700 13px "DM Sans";color:var(--accent)}
+.archiveTitle{font:600 15px/1.35 "DM Sans"}
+.archivePager{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.archivePager[hidden]{display:none}
+.archiveBack{margin-bottom:8px}
+.archiveAmounts{display:flex;gap:22px;flex-wrap:wrap;margin:14px 0}
+.archiveAmounts strong{display:block;font-size:22px;margin-top:2px}
+.archiveSection{margin-top:18px}
+.docRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+@media print{
+ body.printingArchive .side,body.printingArchive .menuBackdrop,body.printingArchive .archiveSearchBar,body.printingArchive .archiveTools,body.printingArchive .archiveMore,body.printingArchive .archivePager,body.printingArchive .noPrint{display:none!important}
+ body.printingArchive .app{display:block}
+ body.printingArchive .view{display:none!important}
+ body.printingArchive #archive{display:block!important}
+}
 </style>
 </head>
 <body>
@@ -226,6 +253,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></symbol>
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></symbol>
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></symbol>
  <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
@@ -270,6 +298,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <button data-v="ihpau" data-tooltip="IHPAU Desk"><svg class="ico lg"><use href="#i-briefcase"></use></svg> <span class="navText">IHPAU Desk</span></button>
 <button data-v="admin" data-tooltip="Admin Control Centre"><svg class="ico lg"><use href="#i-settings"></use></svg> <span class="navText">Admin Control Centre</span></button>
 <button data-v="alerts" data-tooltip="Alerts & Reminders"><svg class="ico lg"><use href="#i-alert"></use></svg> <span class="navText">Alerts & Reminders</span> <span id="alertCount" class="badge warn" style="margin-left:auto;font-size:10px;padding:2px 7px">0</span></button>
+<button data-v="archive" data-tooltip="Records Archive"><svg class="ico lg"><use href="#i-archive"></use></svg> <span class="navText">Records Archive</span></button>
+<button data-v="reports" data-tooltip="Management Reports"><svg class="ico lg"><use href="#i-book"></use></svg> <span class="navText">Reports</span></button>
 <button data-v="register" data-tooltip="Automatic Register"><svg class="ico lg"><use href="#i-book"></use></svg> <span class="navText">Automatic Register</span></button>
 </div>
 <div class="sideFoot">
@@ -312,12 +342,12 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div id="onlinebox" class="panel hide"><h2>Request Details</h2>
 <div class="formgrid">
 <div class="field"><label>Request Type</label><select id="rtype" onchange="toggleProc()"><option>Operational</option><option>Procurement</option></select></div>
-<div class="field"><label>Implementing Entity / Directorate</label><input value="Deputy Secretary & Hospital Secretary Supervision Unit"></div>
+<div class="field"><label>Implementing Entity / Directorate</label><input id="rentity" value="DPPI"></div>
 <div class="field full"><label>Purpose of Activity / Request</label><textarea id="purpose">Request for operational funding for Hospital Secretaries' administrative supportive supervision and facility assessment</textarea></div>
-<div class="field"><label>Location of Activity</label><input value="Nationwide"></div><div class="field"><label>AWP Activity & Budget Line Code</label><input value="Activity: 6.2.19"></div>
-<div class="field"><label>Target Output</label><input value="Engaging Hospital Secretaries on administrative supportive supervision and facility assessment"></div><div class="field"><label>Deliverable</label><input value="Liquidation"></div>
-<div class="field"><label>Timeline</label><input value="20/09/2026 - 04/10/2026"></div><div class="field"><label>Estimated Completion Date</label><input type="date"></div>
-<div id="procfields" class="field full hide"><label>Procurement Method / Specifications</label><textarea placeholder="Procurement-specific information..."></textarea></div>
+<div class="field"><label>Location of Activity</label><input id="rlocation" value="Nationwide"></div><div class="field"><label>AWP Activity & Budget Line Code</label><input id="ractivity" value="6.2.19"></div>
+<div class="field"><label>Target Output</label><input id="routput" value="Engaging Hospital Secretaries on administrative supportive supervision and facility assessment"></div><div class="field"><label>Deliverable</label><input id="rdeliverable" value="Liquidation"></div>
+<div class="field"><label>Timeline</label><input id="rtimeline" value="20/09/2026 - 04/10/2026"></div><div class="field"><label>Estimated Completion Date</label><input id="rcompletion" type="date"></div>
+<div id="procfields" class="field full hide"><label>Procurement Method / Specifications</label><textarea id="rprocurement" placeholder="Procurement-specific information..."></textarea></div>
 </div>
 <h3>Summary Budget</h3><table id="budget"><tr><th>No.</th><th>Activity Type</th><th>Description</th><th>Unit</th><th>Qty/Days</th><th>Unit Cost</th><th>Total</th></tr>
 <tr><td>1</td><td>Senior Staff (Grade 7-10)</td><td>DSA</td><td>10</td><td>14</td><td>NLe 700</td><td>NLe 98,000</td></tr>
@@ -331,7 +361,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="action" onclick="show('concept');cnChoose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload & Extract Concept Note</b><span class="small">Upload Word/PDF, extract the content, review and attach it.</span></div>
 </div>
 <h3>Supporting Documents</h3><div class="formgrid"><div class="field"><label>Other Supporting Documents</label><input type="file" multiple></div><div class="field"><label>Additional Budget / Evidence</label><input type="file" multiple></div></div>
-<br><button class="btn secondary">Save Draft</button> <button class="btn" onclick="submitReq()">Review & Submit</button>
+<p id="conceptAttachState" class="small" role="status"></p>
+<br><button class="btn secondary" type="button" onclick="submitReq('Draft')">Save Draft</button> <button class="btn" type="button" onclick="submitReq('Submitted')">Review & Submit</button>
 </div>
 </section>
 
@@ -390,18 +421,18 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 
     <h3>Concept Narrative</h3>
     <div class="formgrid">
-      <div class="field full"><label>Background / Context</label><textarea placeholder="Brief background and context for the proposed activity..."></textarea></div>
-      <div class="field full"><label>Problem Statement / Justification</label><textarea placeholder="Why is this activity needed?"></textarea></div>
-      <div class="field full"><label>Goal / Overall Objective</label><textarea placeholder="Overall goal of the activity..."></textarea></div>
-      <div class="field full"><label>Specific Objectives</label><textarea placeholder="List the specific objectives..."></textarea></div>
-      <div class="field full"><label>Proposed Activities / Methodology</label><textarea placeholder="Describe what will be done and how..."></textarea></div>
-      <div class="field"><label>Target Participants / Beneficiaries</label><textarea placeholder="Who will participate or benefit?"></textarea></div>
-      <div class="field"><label>Expected Outputs</label><textarea placeholder="Immediate deliverables / outputs..."></textarea></div>
-      <div class="field full"><label>Expected Outcomes</label><textarea placeholder="Expected changes or results..."></textarea></div>
-      <div class="field full"><label>Implementation Arrangements / Responsibilities</label><textarea placeholder="Responsible teams, partners and roles..."></textarea></div>
-      <div class="field full"><label>Monitoring, Reporting & Accountability</label><textarea placeholder="How progress, reporting, liquidation/receipts and accountability will be handled..."></textarea></div>
-      <div class="field full"><label>Risks & Mitigation</label><textarea placeholder="Key risks and mitigation measures..."></textarea></div>
-      <div class="field full"><label>Conclusion / Request</label><textarea placeholder="Closing justification and request for support/approval..."></textarea></div>
+      <div class="field full"><label for="cnbackground">Background / Context</label><textarea id="cnbackground" placeholder="Brief background and context for the proposed activity..."></textarea></div>
+      <div class="field full"><label for="cnproblem">Problem Statement / Justification</label><textarea id="cnproblem" placeholder="Why is this activity needed?"></textarea></div>
+      <div class="field full"><label for="cngoal">Goal / Overall Objective</label><textarea id="cngoal" placeholder="Overall goal of the activity..."></textarea></div>
+      <div class="field full"><label for="cnobjectives">Specific Objectives</label><textarea id="cnobjectives" placeholder="List the specific objectives..."></textarea></div>
+      <div class="field full"><label for="cnmethodology">Proposed Activities / Methodology</label><textarea id="cnmethodology" placeholder="Describe what will be done and how..."></textarea></div>
+      <div class="field"><label for="cnparticipants">Target Participants / Beneficiaries</label><textarea id="cnparticipants" placeholder="Who will participate or benefit?"></textarea></div>
+      <div class="field"><label for="cnoutputs">Expected Outputs</label><textarea id="cnoutputs" placeholder="Immediate deliverables / outputs..."></textarea></div>
+      <div class="field full"><label for="cnoutcomes">Expected Outcomes</label><textarea id="cnoutcomes" placeholder="Expected changes or results..."></textarea></div>
+      <div class="field full"><label for="cnarrangements">Implementation Arrangements / Responsibilities</label><textarea id="cnarrangements" placeholder="Responsible teams, partners and roles..."></textarea></div>
+      <div class="field full"><label for="cnmonitoring">Monitoring, Reporting & Accountability</label><textarea id="cnmonitoring" placeholder="How progress, reporting, liquidation/receipts and accountability will be handled..."></textarea></div>
+      <div class="field full"><label for="cnrisks">Risks & Mitigation</label><textarea id="cnrisks" placeholder="Key risks and mitigation measures..."></textarea></div>
+      <div class="field full"><label for="cnconclusion">Conclusion / Request</label><textarea id="cnconclusion" placeholder="Closing justification and request for support/approval..."></textarea></div>
     </div>
 
     <h3>Supporting Documents</h3>
@@ -421,24 +452,15 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
   </div>
 </section>
 
-<section id="requests" class="view"><div class="split"><div class="panel"><h2>My Requests</h2><table><tr><th>ID</th><th>Request</th><th>Status</th></tr><tr><td>SRHR-2026-0047</td><td>Supportive supervision</td><td><span class="badge info">IHPAU review</span></td></tr><tr><td>SRHR-2026-0046</td><td>ICT equipment</td><td><span class="badge warn">Awaiting receipts</span></td></tr></table></div><div class="panel"><h3>Request Timeline</h3><div class="timeline"><div class="event"><b>Submitted</b><div class="small">Directorate</div></div><div class="event"><b>Cleared</b><div class="small">Project Secretary</div></div><div class="event"><b>Approved</b><div class="small">Chairman</div></div><div class="event"><b>Received</b><div class="small">IHPAU</div></div></div></div></div></section>
+<section id="requests" class="view"><div class="split"><div class="panel"><h2>My Requests</h2><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Status</th><th>Action</th></tr></thead><tbody id="myRequestRows"><tr><td colspan="4" class="small">Open this desk to load your requests.</td></tr></tbody></table></div></div><div class="panel"><h3>Request Timeline</h3><div id="myRequestTimeline" class="timeline"><p class="small">Select a request to see its recorded decisions.</p></div></div></div></section>
 
-<section id="secretary" class="view"><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><div class="panel"><h2>Project Secretary Review Queue</h2><table><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr><tr><td>SRHR-2026-0050</td><td>DPPI</td><td>Operational</td><td>NLe 95,000</td><td><button class="btn" onclick="reviewRequest('SRHR-2026-0050')">Review</button>
-<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Project Secretary','Directorate')">Return Query</button>
-<button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Project Secretary')">Send Reminder</button></td></tr></table></div></section>
-<section id="approval" class="view"><div class="panel"><h2>Chairman Approval Desk</h2><h3>SRHR-2026-0050 — HMIS Mentorship Activity</h3><p><b>Directorate:</b> DPPI &nbsp; <b>Type:</b> Operational &nbsp; <b>Amount:</b> NLe 95,000</p><p class="small">Request form, concept note and supporting documents are available for review.</p><button class="btn" onclick="approveRequest('SRHR-2026-0050')">Approve</button>
-<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0050','Chairman','Directorate')">Return / Query</button>
-<button class="btn secondary" onclick="sendReminder('SRHR-2026-0050','Chairman')">Send Reminder</button>
-<button class="btn danger" onclick="rejectRequest('SRHR-2026-0050')">Reject</button></div></section>
+<section id="secretary" class="view"><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><div class="panel"><h2>Project Secretary Review Queue</h2><p class="small">Clear a request only while it is at this desk. A return requires a reason.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="secretaryQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
+<section id="approval" class="view"><div class="panel"><h2>Chairman Approval Desk</h2><p class="small">Approval records your name, the time, and the request version. You cannot approve a request you created.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Entity</th><th>Amount</th><th>Action</th></tr></thead><tbody id="approvalQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
 <section id="ihpau" class="view"><div class="panel financePanel"><h2>Current USD Exchange Rate</h2>
 <p class="small">IHPAU sets the NLe amount for 1 USD ($). This rate appears in the Directorate request form and Project Secretary workspace.</p><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><form id="usdRateEditor" hidden>
 <div class="field"><label for="usdRateInput">NLe per 1 USD ($)</label><input id="usdRateInput" type="number" min="0" step="any" inputmode="decimal" placeholder="Enter current rate" required></div>
 <button id="usdRateSave" class="btn" type="submit">Save USD Rate</button></form>
-<p id="usdRateStatus" class="small" role="status"></p></div><div class="panel"><h2>IHPAU Processing Desk</h2><table><tr><th>ID</th><th>Type</th><th>Stage</th><th>Accountability</th><th>Action</th></tr><tr><td>SRHR-2026-0047</td><td>Operational</td><td>Payment Processing</td><td>—</td><td><button class="btn" onclick="updateFinance('SRHR-2026-0047')">Update</button>
-<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0047','IHPAU / Finance','Directorate')">Query</button>
-<button class="btn secondary" onclick="sendReminder('SRHR-2026-0047','IHPAU / Finance')">Remind</button></td></tr><tr><td>SRHR-2026-0046</td><td>Procurement</td><td>Procurement Completed</td><td><span class="badge warn">Receipts outstanding</span></td><td><button class="btn" onclick="recordReceipts('SRHR-2026-0046')">Record Receipts</button>
-<button class="btn secondary" onclick="raiseQuery('SRHR-2026-0046','IHPAU / Finance','Directorate')">Query</button>
-<button class="btn secondary" onclick="sendReminder('SRHR-2026-0046','IHPAU / Finance')">Remind</button></td></tr></table></div></section>
+<p id="usdRateStatus" class="small" role="status"></p></div><div class="panel"><h2>IHPAU Processing Desk</h2><p class="small">Finance status must be one of the approved steps. Closing is refused while a receipt is still pending or a legal hold is set.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Amount</th><th>Action</th></tr></thead><tbody id="ihpauQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
 
 
 <section id="admin" class="view">
@@ -470,6 +492,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="action" onclick="adminTool('templates')"><b>Forms & Templates</b><span class="small">Manage request, concept-note and document template versions.</span></div>
 <div class="action" onclick="adminTool('finance')"><b>Finance Configuration</b><span class="small">Currencies, procurement methods, PIM categories and reporting years.</span></div>
 <div class="action" onclick="adminTool('system')"><b>System Settings</b><span class="small">Request numbering, session rules, labels and maintenance controls.</span></div>
+<div class="action" onclick="adminTool('records')"><b>Records & Legal Hold</b><span class="small">Place or release legal holds and update retention metadata with audit.</span></div>
 <div class="action" onclick="adminTool('audit')"><b>Audit & Recovery</b><span class="small">Review privileged actions, export logs and restore configuration snapshots.</span></div>
 </div>
 </div>
@@ -509,6 +532,62 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <p class="small"><b>Forward-only reminder rule:</b> a reminder at Secretary stage goes to Chairman and IHPAU/Finance; a reminder at Chairman stage goes to IHPAU/Finance; a reminder at IHPAU stage stays with the designated IHPAU/Finance recipient. Earlier completed stages are not alerted.</p>
 </div></div></section>
 
+<section id="reports" class="view">
+<div class="panel">
+ <h2 style="margin-top:0">Management Reports</h2>
+ <p class="small">Summaries for oversight: status mix, implementing entities, legal holds, and records due for retention review.</p>
+ <div class="archiveTools noPrint">
+  <div class="field"><label for="reportFiscalYear">Fiscal year (optional)</label><input id="reportFiscalYear" inputmode="numeric" placeholder="2026"></div>
+  <button class="btn" type="button" onclick="loadManagementReport()">Refresh</button>
+  <button class="btn secondary" type="button" onclick="exportManagementReport()">Export CSV</button>
+ </div>
+ <div id="reportsPanel" class="archiveSection"><p class="small">Open this view to load the report.</p></div>
+</div>
+</section>
+
+<section id="archive" class="view">
+<div class="panel" id="archiveListPanel">
+ <h2 style="margin-top:0">Records Archive</h2>
+ <p class="small">Search by reference number, title, or a word from the request.</p>
+ <form id="archiveSearch">
+  <div class="archiveSearchBar">
+   <div class="field"><label for="archiveQ">Search</label><input id="archiveQ" name="q" placeholder="Reference or title"></div>
+   <button class="btn" type="submit">Search</button>
+  </div>
+  <div class="archiveTools">
+   <div class="field"><label for="archiveStatusFilter">Status</label><select id="archiveStatusFilter" name="status"><option value="">Any</option><option>Draft</option><option>Submitted</option><option>Query Raised</option><option>Awaiting Approval</option><option>Approved</option><option>Rejected</option><option>Withdrawn</option><option>Payment Processing</option><option>Closed</option></select></div>
+   <div class="field"><label for="archiveSort">Sort</label><select id="archiveSort"><option value="updated">Recently updated</option><option value="reference">Reference</option><option value="amount">Highest amount</option><option value="title">Title</option></select></div>
+  </div>
+  <details class="archiveMore" id="archiveMore">
+   <summary>More filters</summary>
+   <div class="archiveFilters">
+    <div class="field"><label for="archiveEntity">Directorate</label><input id="archiveEntity" name="entity" placeholder="DPPI"></div>
+    <div class="field"><label for="archiveYear">Year</label><input id="archiveYear" name="fiscal_year" inputmode="numeric" placeholder="2026"></div>
+    <div class="field"><label for="archiveCategory">Type</label><select id="archiveCategory" name="category"><option value="">Any</option><option>Operational</option><option>Procurement</option></select></div>
+    <div class="field"><label for="archiveOfficer">Officer</label><input id="archiveOfficer" name="officer"></div>
+    <div class="field"><label for="archiveProgramme">Activity code</label><input id="archiveProgramme" name="programme"></div>
+    <div class="field"><label for="archiveFunding">Funding source</label><input id="archiveFunding" name="funding_source"></div>
+    <div class="field"><label for="archiveAmountMin">Amount from</label><input id="archiveAmountMin" name="amount_min" inputmode="decimal"></div>
+    <div class="field"><label for="archiveAmountMax">Amount to</label><input id="archiveAmountMax" name="amount_max" inputmode="decimal"></div>
+    <div class="field"><label for="archiveSubmittedFrom">Submitted from</label><input id="archiveSubmittedFrom" name="submitted_from" type="date"></div>
+    <div class="field"><label for="archiveSubmittedTo">Submitted to</label><input id="archiveSubmittedTo" name="submitted_to" type="date"></div>
+   </div>
+  </details>
+ </form>
+ <div class="archiveHead" style="margin-top:8px">
+  <p id="archiveState" class="small" role="status" style="margin:0">Open this workspace to load records.</p>
+  <button class="btn secondary noPrint" id="archiveExport" type="button">Download list</button>
+ </div>
+ <div id="archiveResults"></div>
+ <div class="archivePager" id="archivePager" hidden>
+  <button class="btn secondary" id="archivePrev" type="button">Previous</button>
+  <span id="archivePage" class="small"></span>
+  <button class="btn secondary" id="archiveNext" type="button">Next</button>
+ </div>
+</div>
+<div id="archiveDetail" class="panel hide" tabindex="-1"></div>
+</section>
+
 <section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><div class="tableWrap"><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></div></section>
 </main></div>
 <script src="/finance.js"></script>
@@ -546,36 +625,24 @@ if(localStorage.getItem('srhrSidebarCollapsed')==='1'&&window.innerWidth>900){
   if(ico)ico.setAttribute('href','#i-chevron-right');
  }
 }
-const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",register:"Automatic Register"};
+const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",archive:"Records Archive",reports:"Management Reports",register:"Automatic Register"};
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 function choose(x){document.getElementById('start').classList.add('hide');document.getElementById('uploadbox').classList.toggle('hide',x!=='upload');document.getElementById('onlinebox').classList.toggle('hide',x!=='online')}
-function extract(){document.getElementById('extract').style.display='block'}
+function extract(){const box=document.getElementById('extract');box.style.display='block';box.innerHTML='<h3>Excel import is not available yet</h3><p class="small">The file was not read and no request was created. Use Fill Request Online so the submission is checked and given a permanent reference.</p>'}
 function openForm(extracted){document.getElementById('uploadbox').classList.add('hide');document.getElementById('onlinebox').classList.remove('hide')}
 function toggleProc(){document.getElementById('procfields').classList.toggle('hide',document.getElementById('rtype').value!=='Procurement')}
 function addLine(){let t=document.getElementById('budget'),r=t.insertRow();r.innerHTML='<td>'+ (t.rows.length-1) +'</td><td contenteditable>New item</td><td contenteditable>Description</td><td contenteditable>1</td><td contenteditable>1</td><td contenteditable>NLe 0</td><td>NLe 0</td>';prepareBudgetRow(r);updateBudgetSummary()}
-function submitReq(){
- const id='SRHR-2026-'+String(51+Math.floor(Math.random()*20)).padStart(4,'0');
- addAlert('Project Secretary',id,'New request submitted','A Directorate has submitted a new request for review.');
- alert('Request submitted successfully. '+id+' has been routed to the Project Secretary.');
- show('requests');
-}
-
 function cnChoose(x){
   document.getElementById('cnstart').classList.add('hide');
   document.getElementById('cnupload').classList.toggle('hide',x!=='upload');
   document.getElementById('cnform').classList.toggle('hide',x!=='write');
   if(x==='write') document.getElementById('cnmode').textContent='Online entry';
 }
-function cnExtract(){document.getElementById('cnextract').style.display='block'}
+function cnExtract(){const box=document.getElementById('cnextract');box.style.display='block';box.innerHTML='<h3>Document extraction is not available yet</h3><p class="small">The file was not read. Write the concept note in the form. Only the text you confirm is stored with the request.</p><button class="btn" type="button" onclick="cnOpen(false)">Write the concept note</button>'}
 function cnOpen(extracted){
   document.getElementById('cnupload').classList.add('hide');document.getElementById('cnform').classList.remove('hide');
-  document.getElementById('cnmode').textContent='Extracted — review required';
-  document.getElementById('cndate').value='2026-09-08';
-  document.getElementById('cnfrom').value='Project Management Analyst, SRHR Project';
-  document.getElementById('cnto').value='Team Lead, Integrated Health Projects Administration Unit (IHPAU)';
-  document.getElementById('cnthrough').value='Project Coordinator, SRHR Project';
-  document.getElementById('cntitle').value='Transport Refunds to Nurses on the Official Handover of SRHR Drugs to MOH';
+  document.getElementById('cnmode').textContent=extracted?'Extracted — review required':'Online entry';
 }
 function cnPreview(){
   document.getElementById('cnpreview').classList.remove('hide');
@@ -759,9 +826,31 @@ function adminTool(type){
   w.innerHTML=`<h3>Finance Configuration</h3><div class="formgrid"><div class="field"><label>Primary Currency</label><select id="cfgCurrency"><option ${systemConfig.currency==='NLe'?'selected':''}>NLe</option><option ${systemConfig.currency==='USD'?'selected':''}>USD</option></select></div><div class="field"><label>Disbursement Year</label><input id="cfgYear" value="${systemConfig.year}"></div></div><button class="btn" style="margin-top:12px" onclick="saveFinanceCfg()">Save Finance Settings</button>`;
  } else if(type==='system'){
   w.innerHTML=`<h3>System Settings</h3><div class="formgrid"><div class="field"><label>Request Number Prefix</label><input id="cfgPrefix" value="${esc(systemConfig.requestPrefix)}"></div><div class="field"><label>Administrative reason required</label><select id="cfgReason"><option value="true" ${systemConfig.requireReason?'selected':''}>Yes</option><option value="false" ${!systemConfig.requireReason?'selected':''}>No</option></select></div></div><button class="btn" style="margin-top:12px" onclick="saveSystemCfg()">Save System Settings</button>`;
+ } else if(type==='records'){
+  w.innerHTML=`<h3>Records & Legal Hold</h3><p class="small">Changes are written to the request, workflow history, and server audit log. A reason is always required.</p>
+  <div class="formgrid"><div class="field"><label for="recordControlRef">Request reference or ID</label><input id="recordControlRef" placeholder="SRHR-2026-000012"></div>
+  <div class="field"><label for="recordControlAction">Action</label><select id="recordControlAction"><option value="legal_hold">Place legal hold</option><option value="release_legal_hold">Release legal hold</option><option value="update_record">Update retention metadata</option></select></div>
+  <div class="field full"><label for="recordControlNote">Reason</label><textarea id="recordControlNote" placeholder="Why this control is being applied"></textarea></div>
+  <div class="field"><label for="recordControlCategory">Retention category</label><input id="recordControlCategory" placeholder="operational, procurement, financial"></div>
+  <div class="field"><label for="recordControlArchival">Archival status</label><select id="recordControlArchival"><option value="">No change</option><option>active</option><option>archived</option><option>restricted</option></select></div></div>
+  <button class="btn" type="button" style="margin-top:12px" onclick="applyRecordControl()">Apply record control</button>
+  <p id="recordControlState" class="small" role="status"></p>
+  <p class="small">See <code>docs/RECOVERY.md</code> for backup and integrity guidance.</p>`;
  } else if(type==='audit'){
-  w.innerHTML=`<h3>Administrator Audit & Recovery</h3><p class="small">Privileged changes are append-only in this prototype view.</p><div style="overflow:auto"><table><thead><tr><th>Time</th><th>Administrator</th><th>Action</th><th>Detail / Reason</th></tr></thead><tbody>${adminAudit.map(a=>`<tr><td>${esc(a.time)}</td><td>${esc(a.admin)}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.detail)}</td></tr>`).join('')||'<tr><td colspan="4">No privileged actions recorded yet.</td></tr>'}</tbody></table></div><div style="margin-top:12px"><button class="btn secondary" onclick="exportAudit()">Export Audit Log</button> <button class="btn secondary" onclick="snapshotConfig()">Create Configuration Snapshot</button></div>`;
+  w.innerHTML=`<h3>Administrator Audit & Recovery</h3><p class="small">Privileged changes are append-only. Server audit entries appear below when you are signed in as Administrator.</p>
+  <div id="auditIntegrityState" class="small" role="status"></div>
+  <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" type="button" onclick="runAuditIntegrityCheck()">Check integrity</button><button class="btn secondary" type="button" onclick="loadServerAuditLog()">Load server audit</button><button class="btn secondary" onclick="exportAudit()">Export local admin log</button> <button class="btn secondary" onclick="snapshotConfig()">Create configuration snapshot</button></div>
+  <div style="overflow:auto"><table><thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Detail</th></tr></thead><tbody id="serverAuditBody"><tr><td colspan="4">Load the server audit log to review privileged API actions.</td></tr></tbody></table></div>`;
  }
+}
+async function loadServerAuditLog(){
+ const body=document.getElementById('serverAuditBody'); if(!body)return;
+ body.innerHTML='<tr><td colspan="4">Loading…</td></tr>';
+ try{
+  const rows=await fetch('/api/admin/audit',{credentials:'same-origin'}).then(r=>r.json());
+  if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="4">Could not load server audit log.</td></tr>';return}
+  body.innerHTML=rows.length?rows.map(a=>`<tr><td>${esc(a.created_at||'')}</td><td>${esc(a.actor||'System')}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.details||'')}</td></tr>`).join(''):'<tr><td colspan="4">No server audit entries yet.</td></tr>';
+ }catch(e){body.innerHTML='<tr><td colspan="4">Could not load server audit log.</td></tr>'}
 }
 function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' > '));adminTool('workflow')}
 function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} > ${n}`);adminTool('workflow')}
@@ -835,16 +924,21 @@ const RBAC_ROLES=['Directorate User','Project Secretary','Chairman','IHPAU','Adm
 const VIEW_LABELS={
  dashboard:'Dashboard',new:'New Request',concept:'Concept Note',requests:'My Requests',
  secretary:'Secretary Desk',approval:'Chairman Approval',ihpau:'IHPAU Desk',
- admin:'Admin Control Centre',alerts:'Alerts & Reminders',register:'Automatic Register'
+ admin:'Admin Control Centre',alerts:'Alerts & Reminders',archive:'Records Archive',reports:'Management Reports',register:'Automatic Register'
 };
 const DEFAULT_RBAC={
- 'Directorate User':{views:['dashboard','new','concept','requests','alerts'],home:'dashboard',scope:'own_entity'},
- 'Project Secretary':{views:['dashboard','secretary','requests','alerts','register'],home:'secretary',scope:'all_requests'},
- 'Chairman':{views:['dashboard','approval','alerts'],home:'approval',scope:'approval_queue'},
- 'IHPAU':{views:['dashboard','ihpau','alerts','register'],home:'ihpau',scope:'ihpau_queue'},
+ 'Directorate User':{views:['dashboard','new','concept','requests','alerts','archive'],home:'dashboard',scope:'own_entity'},
+ 'Project Secretary':{views:['dashboard','secretary','requests','alerts','register','archive','reports'],home:'secretary',scope:'all_requests'},
+ 'Chairman':{views:['dashboard','approval','alerts','archive','reports'],home:'approval',scope:'approval_queue'},
+ 'IHPAU':{views:['dashboard','ihpau','alerts','register','archive','reports'],home:'ihpau',scope:'ihpau_queue'},
  'Administrator':{views:Object.keys(VIEW_LABELS),home:'admin',scope:'all'}
 };
 let rbac=JSON.parse(localStorage.getItem('srhrRBAC')||'null')||JSON.parse(JSON.stringify(DEFAULT_RBAC));
+for(const [role,def] of Object.entries(DEFAULT_RBAC)){
+ if(!rbac[role])rbac[role]=JSON.parse(JSON.stringify(def));
+ else if(def.views.includes('archive')&&!(rbac[role].views||[]).includes('archive'))rbac[role].views.push('archive');
+ else if(def.views.includes('reports')&&!(rbac[role].views||[]).includes('reports'))rbac[role].views.push('reports');
+}
 function saveRBAC(){localStorage.setItem('srhrRBAC',JSON.stringify(rbac));applyRBAC();audit('Interface permissions updated','Role-based menu/dashboard configuration changed.')}
 function currentRole(){return document.getElementById('role')?.value||'Directorate User'}
 function allowedViews(role){return (rbac[role]||DEFAULT_RBAC[role]||{views:[]}).views}
@@ -1015,4 +1109,7 @@ document.getElementById('loginPass')?.addEventListener('keydown',e=>{if(e.key===
  }catch{}
 })();
 </script>
+<script src="/archive.js"></script>
+<script src="/reports.js"></script>
+<script src="/workflow.js"></script>
 </div></body></html>

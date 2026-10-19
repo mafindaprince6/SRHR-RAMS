@@ -1,32 +1,52 @@
 # SRHR-RAMS
 
-Recovered Cloudflare Worker + D1 project, packaged for GitHub.
+Sexual and Reproductive Health and Rights — Request & Activity Management System for the Ministry of Health, Sierra Leone.
 
-## Contents
-- `src/index.js`: server authentication, API and workflow.
-- `public/index.html`: application interface, with responsive CSS repairs.
-- `schema.sql`: schema and sample account seed data.
-- `wrangler.jsonc`: existing Cloudflare application and D1 binding.
+**Stack:** Cloudflare Worker (`src/index.js`), D1 SQLite, static frontend (`public/`), session-based RBAC.
 
-## Validation and limits
-The Worker and inline browser scripts passed syntax checks during packaging. This is recovered source, not a verified fresh rebuild or a confirmation of the live deployment. Some interface features still use browser local storage and demonstration data. Full end-to-end verification remains necessary. The temporary unauthenticated recovery endpoint and recovery scripts have been removed.
-
-## Existing live database
-Do not run `schema.sql` against the existing database. It contains CREATE statements and seed accounts. Preserve the existing D1 database. Do not deploy merely to upload code to GitHub.
-
-## Upload using PowerShell
-Run inside this extracted folder:
+## Quick start (local)
 
 ```powershell
-git init
-git branch -M main
-git add .
-git commit -m "Add recovered SRHR-RAMS source"
-git remote add origin https://github.com/mafindaprince6/SRHR-RAMS.git
-git push -u origin main
+npm install
+npx wrangler dev
 ```
 
-Sign in to GitHub when prompted. The commands assume the remote repository remains empty. Do not force push if Git reports a conflict.
+Apply D1 migrations to the local database (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). Default demo accounts are in `schema.sql` (local fresh DB only).
 
-## Cloudflare
-Use your authenticated Cloudflare account with Wrangler. Review the D1 binding before any deployment. This package retains the existing database identifier but includes no Cloudflare API token. Existing user credentials remain in the existing database; the package does not reset them.
+## Verify
+
+```powershell
+npm run check
+npm test
+```
+
+See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the full Stage 7 checklist.
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [UPDATE-NOTES.md](UPDATE-NOTES.md) | Migration order and feature notes by stage |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deploy, rollback, smoke tests |
+| [docs/RECOVERY.md](docs/RECOVERY.md) | Backup, integrity checks, legal hold |
+
+## Project layout
+
+- `src/index.js` — API, workflow, archive, finance, retention, reports
+- `public/` — UI (`index.html`, `workflow.js`, `archive.js`, `reports.js`, `finance.js`)
+- `migrations/` — additive D1 migrations (001–004)
+- `tests/` — Node test runner + in-memory SQLite D1 shim
+
+## Production database
+
+**Do not** run `schema.sql` against an existing production D1 database. Use only the files in `migrations/` on live data. Export a backup before migrating (see RECOVERY.md).
+
+## GitHub
+
+Remote: `https://github.com/mafindaprince6/SRHR-RAMS.git`
+
+Push your branch after tests pass:
+
+```powershell
+git push -u origin HEAD
+```
