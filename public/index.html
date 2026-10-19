@@ -6,53 +6,77 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 :root{
- --ink:#13231c;--muted:#718079;--forest:#27364a;--forest2:#34475f;--emerald:#5f7f99;
- --mint:#e8eef3;--lime:#d9e3ea;--cream:#f4f5f7;--paper:#fff;--line:#dde6e1;
- --amber:#e7a83e;--red:#c84b42;--blue:#3c6eeb;--shadow:0 22px 60px rgba(12,55,39,.10)
+ --ink:#122033;--muted:#5a6b78;--forest:#0e3a74;--forest2:#163e7a;--emerald:#1b4a8c;
+ --mint:#eef4fb;--lime:#3d9b4a;--cream:#f4f7fb;--paper:#fff;--line:#d5e0ea;
+ --amber:#d4a017;--gold:#e0b322;--red:#c41e3a;--blue:#0e3a74;--green:#3d9b4a;
+ --shadow:0 22px 60px rgba(14,58,116,.12);
+ --side-from:#0b2e5e;--side-mid:#123a74;--side-to:#1b4a8c;
+ --hero-from:#0b2e5e;--hero-mid:#163e7a;--hero-to:#2a5a9a;
+ --accent:#0e3a74;--accent-soft:#e8f0f8;--ring:#3d9b4a
 }
+html[data-theme="navy"]{--accent:#0e3a74;--accent-soft:#e8f0f8;--side-from:#0b2e5e;--side-mid:#123a74;--side-to:#1b4a8c;--hero-from:#0b2e5e;--hero-mid:#163e7a;--hero-to:#2a5a9a;--forest:#0e3a74;--forest2:#163e7a;--emerald:#1b4a8c;--ring:#3d9b4a}
+html[data-theme="green"]{--accent:#2e7d32;--accent-soft:#e8f6ea;--side-from:#1e4d24;--side-mid:#2e7d32;--side-to:#3d9b4a;--hero-from:#1e4d24;--hero-mid:#2e7d32;--hero-to:#4caf50;--forest:#1e4d24;--forest2:#2e7d32;--emerald:#3d9b4a;--ring:#d4a017}
+html[data-theme="gold"]{--accent:#b8860b;--accent-soft:#fbf3dc;--side-from:#6b5110;--side-mid:#b8860b;--side-to:#d4a017;--hero-from:#6b5110;--hero-mid:#b8860b;--hero-to:#e0b322;--forest:#6b5110;--forest2:#b8860b;--emerald:#d4a017;--ring:#0e3a74}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
 body{margin:0;font:14px/1.55 "DM Sans",Segoe UI,sans-serif;background:var(--cream);color:var(--ink)}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
-radial-gradient(circle at 82% 7%,rgba(93,126,153,.10),transparent 25%),
-radial-gradient(circle at 15% 88%,rgba(80,99,119,.06),transparent 26%)}
-.app{display:grid;grid-template-columns:292px 1fr;min-height:100vh;position:relative}
-.side{background:linear-gradient(160deg,#202b39 0%,#2d3d50 68%,#3a4c61 100%);color:white;padding:30px 22px;position:sticky;top:0;height:100vh;overflow:hidden}
+radial-gradient(circle at 82% 7%,rgba(14,58,116,.08),transparent 25%),
+radial-gradient(circle at 15% 88%,rgba(61,155,74,.07),transparent 26%)}
+.ico{width:1.05em;height:1.05em;display:inline-block;vertical-align:-.18em;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ico.lg{width:18px;height:18px}
+.sprite{position:absolute;width:0;height:0;overflow:hidden;left:-999px}
+.app{display:grid;grid-template-columns:minmax(240px,292px) minmax(0,1fr);min-height:100vh;position:relative}
+.side{background:linear-gradient(160deg,var(--side-from) 0%,var(--side-mid) 68%,var(--side-to) 100%);color:white;padding:26px 20px;position:sticky;top:0;height:100vh;overflow:hidden}
 .side:after{content:"";position:absolute;width:260px;height:260px;border:1px solid rgba(255,255,255,.09);border-radius:50%;bottom:-100px;right:-110px;box-shadow:0 0 0 38px rgba(255,255,255,.025),0 0 0 76px rgba(255,255,255,.018)}
-.brand{font-family:Manrope,sans-serif;font-size:27px;font-weight:800;letter-spacing:-1.2px;position:relative;z-index:2}
-.brand:before{content:"SL";display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;margin-right:10px;background:#e6ebef;color:#2a3b4e;font-size:13px;letter-spacing:0;vertical-align:3px}
-.sub{opacity:.62;font-size:11px;line-height:1.5;margin:8px 5px 34px 50px;max-width:170px}
-.nav{position:relative;z-index:2}.nav button{display:flex;align-items:center;width:100%;border:0;background:transparent;color:#dce4eb;padding:13px 15px;border-radius:13px;margin:5px 0;cursor:pointer;font:600 13px "DM Sans";transition:.22s}
-.nav button:before{content:"";width:7px;height:7px;border:1.5px solid currentColor;border-radius:50%;margin-right:13px;opacity:.7}
-.nav button.active{background:rgba(255,255,255,.12);color:white;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
-.nav button.active:before{background:var(--lime);border-color:var(--lime);box-shadow:0 0 0 4px rgba(216,239,111,.12)}
+.brand{font-family:Manrope,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.8px;position:relative;z-index:2;display:flex;align-items:center;gap:12px}
+.brand img{width:46px;height:46px;border-radius:50%;background:#fff;object-fit:cover;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--ring)}
+.sub{opacity:.72;font-size:11px;line-height:1.5;margin:10px 4px 28px 58px;max-width:190px}
+.nav{position:relative;z-index:2}.nav button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:#dce4eb;padding:12px 14px;border-radius:12px;margin:4px 0;cursor:pointer;font:600 13px "DM Sans";transition:.22s;text-align:left}
+.nav button.active{background:rgba(255,255,255,.14);color:white;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.nav button.active .ico{color:#fff}
 .nav button:hover{background:rgba(255,255,255,.08)}
-.main{padding:34px 42px 70px;max-width:1600px;width:100%;margin:auto}
-.top{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:32px}
-.top h1{margin:0;font:800 29px/1.15 Manrope;letter-spacing:-1px}.small{font-size:12px;color:var(--muted)}
-.role{background:rgba(255,255,255,.8);backdrop-filter:blur(12px);border:1px solid var(--line);padding:11px 14px;border-radius:14px;font-weight:600;box-shadow:0 5px 20px rgba(12,55,39,.04)}
-.cards{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:15px}
-.card,.panel{background:rgba(255,255,255,.91);border:1px solid rgba(218,228,223,.9);border-radius:20px;padding:21px;box-shadow:0 8px 28px rgba(17,57,42,.045);backdrop-filter:blur(10px)}
-.card{min-height:128px;position:relative;overflow:hidden;transition:.25s}.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
-.card:first-child{background:linear-gradient(135deg,#263548,#3b5067);color:white;border:0}
-.card:first-child .label{color:#cbd5de}.card:first-child:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;background:var(--lime);right:-45px;top:-40px;opacity:.9}
+.main{padding:clamp(18px,3vw,42px) clamp(14px,3vw,42px) 70px;max-width:1600px;width:100%;margin:auto}
+.top{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:28px}
+.top h1{margin:0;font:800 clamp(22px,2.4vw,29px)/1.15 Manrope;letter-spacing:-1px}.small{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.role{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border:1px solid var(--line);padding:11px 14px;border-radius:12px;font-weight:600;box-shadow:0 5px 20px rgba(14,58,116,.05);min-width:min(220px,100%)}
+.themePick{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.92);border:1px solid var(--line);padding:8px 10px;border-radius:12px}
+.themePick span{font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
+.swatch{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #c9d4de;cursor:pointer;padding:0}
+.swatch[data-theme="navy"]{background:#0e3a74}.swatch[data-theme="green"]{background:#3d9b4a}.swatch[data-theme="gold"]{background:#d4a017}
+.swatch.on{box-shadow:0 0 0 2px var(--accent)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:15px}
+.card,.panel{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:18px;padding:21px;box-shadow:0 8px 28px rgba(14,58,116,.045);backdrop-filter:blur(10px)}
+.card{min-height:120px;position:relative;overflow:hidden;transition:.25s}.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.cards .card:first-child{background:linear-gradient(135deg,var(--hero-from),var(--hero-to));color:white;border:0}
+.cards .card:first-child .label{color:#d7e4f2}.cards .card:first-child:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;background:var(--gold);right:-45px;top:-40px;opacity:.85}
 .metric{font:800 35px Manrope;margin-top:14px;letter-spacing:-1px}.label{color:var(--muted);font-size:10px;letter-spacing:1.2px;font-weight:700}
 h2{font:800 20px Manrope;letter-spacing:-.5px;margin-top:26px}h3{font:700 15px Manrope;margin-top:23px}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:18px 0 25px}.action{padding:23px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.82);cursor:pointer;position:relative;overflow:hidden;transition:.25s}
-.action:after{content:"→";position:absolute;right:19px;top:19px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#eef4f1;color:var(--forest);font-size:17px}
-.action:hover{border-color:#a8c9b9;transform:translateY(-3px);box-shadow:var(--shadow)}.action b{display:block;font:700 16px Manrope;margin-bottom:7px;padding-right:35px}
-table{width:100%;border-collapse:separate;border-spacing:0}th,td{padding:13px 10px;border-bottom:1px solid #edf1ef;text-align:left;font-size:12.5px}th{color:#84918b;font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
-tr:last-child td{border-bottom:0}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#e9eef3;color:#405c73;font-size:10px;font-weight:800}.warn{background:#fff3dc;color:#a66508}.info{background:#eaf0ff;color:#315fc7}
-.btn{border:0;border-radius:11px;padding:11px 16px;background:linear-gradient(135deg,var(--forest2),#526b83);color:white;font:700 12px "DM Sans";cursor:pointer;box-shadow:0 7px 18px rgba(52,71,95,.14);transition:.2s}.btn:hover{transform:translateY(-1px)}.btn.secondary{background:white;color:var(--ink);border:1px solid var(--line);box-shadow:none}.btn.danger{background:var(--red)}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px;margin:18px 0 25px}
+.action{padding:23px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.9);cursor:pointer;position:relative;overflow:hidden;transition:.25s}
+.action .ico{margin-right:6px;color:var(--accent)}
+.action:after{content:"";position:absolute;right:19px;top:19px;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%230e3a74' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:16px}
+.action:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow)}.action b{display:block;font:700 16px Manrope;margin-bottom:7px;padding-right:35px}
+.btn .ico{margin-right:6px}
+table{width:100%;border-collapse:separate;border-spacing:0}th,td{padding:13px 10px;border-bottom:1px solid #edf1ef;text-align:left;font-size:12.5px}th{color:#6b7c8a;font-size:10px;text-transform:uppercase;letter-spacing:.7px;font-weight:700}
+tr:last-child td{border-bottom:0}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#e9eef3;color:#405c73;font-size:10px;font-weight:800}.warn{background:#fff6dc;color:#8a6a08}.info{background:#e8f0fb;color:#0e3a74}
+.btn{border:0;border-radius:11px;padding:11px 16px;background:linear-gradient(135deg,var(--forest2),var(--emerald));color:white;font:700 12px "DM Sans";cursor:pointer;box-shadow:0 7px 18px rgba(14,58,116,.16);transition:.2s;display:inline-flex;align-items:center;justify-content:center}.btn:hover{transform:translateY(-1px)}.btn.secondary{background:white;color:var(--ink);border:1px solid var(--line);box-shadow:none}.btn.danger{background:var(--red);box-shadow:none}
 .view{display:none}.view.active{display:block;animation:rise .35s ease}@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#52615a;letter-spacing:.15px}
-input,select,textarea{width:100%;padding:12px 13px;border:1px solid #d6e0db;border-radius:11px;background:#fcfdfc;font:13px "DM Sans";outline:none;transition:.2s}input:focus,select:focus,textarea:focus{border-color:#7a94aa;box-shadow:0 0 0 3px rgba(95,127,153,.10);background:white}textarea{min-height:94px;resize:vertical}
-.steps{display:flex;gap:0;margin:0 0 22px;padding:9px;background:#e9efeb;border-radius:15px;width:max-content;max-width:100%;flex-wrap:wrap}.step{padding:7px 12px;border-radius:9px;color:#718079;font-size:10px;font-weight:700}.step.on{background:white;color:var(--forest);box-shadow:0 3px 10px rgba(18,58,43,.08)}
-.upload{border:1.5px dashed #a8c3b7;border-radius:18px;padding:40px;text-align:center;background:linear-gradient(145deg,#fbfdfc,#f1f7f4)}.extract{margin-top:16px;display:none}.ok{color:#4d6b83;font-weight:800}.missing{color:#b87614;font-weight:800}
-.timeline{border-left:1px solid #ccd6de;margin-left:9px;padding-left:22px}.event{margin:0 0 22px;position:relative}.event:before{content:"";width:9px;height:9px;background:var(--lime);border:3px solid var(--forest);border-radius:50%;position:absolute;left:-30px;top:3px}
-.split{display:grid;grid-template-columns:2fr 1fr;gap:17px}.hide{display:none}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#3d5163;letter-spacing:.15px}
+input,select,textarea{width:100%;padding:12px 13px;border:1px solid #d5e0ea;border-radius:11px;background:#fcfdfe;font:13px "DM Sans";outline:none;transition:.2s}input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);background:white}textarea{min-height:94px;resize:vertical}
+.steps{display:flex;gap:0;margin:0 0 22px;padding:9px;background:var(--accent-soft);border-radius:15px;width:max-content;max-width:100%;flex-wrap:wrap}.step{padding:7px 12px;border-radius:9px;color:#718079;font-size:10px;font-weight:700}.step.on{background:white;color:var(--forest);box-shadow:0 3px 10px rgba(14,58,116,.08)}
+.upload{border:1.5px dashed color-mix(in srgb,var(--accent) 35%,#c9d6e0);border-radius:18px;padding:40px;text-align:center;background:linear-gradient(145deg,#fbfcfe,var(--accent-soft))}.extract{margin-top:16px;display:none}.ok{color:var(--green);font-weight:800}.missing{color:#b8860b;font-weight:800}
+.timeline{border-left:1px solid #ccd6de;margin-left:9px;padding-left:22px}.event{margin:0 0 22px;position:relative}.event:before{content:"";width:9px;height:9px;background:var(--gold);border:3px solid var(--forest);border-radius:50%;position:absolute;left:-30px;top:3px}
+.split{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:17px}.hide{display:none}
 #dashboard:before{content:"REQUEST CONTROL CENTRE";display:inline-block;font:800 10px Manrope;letter-spacing:1.5px;color:#6f7f77;margin-bottom:12px}
 #dashboard .panel{margin-top:20px}
-#register .panel,#secretary .panel,#approval .panel,#ihpau .panel,#concept .panel,#new .panel{box-shadow:0 16px 45px rgba(17,57,42,.06)}
+#register .panel,#secretary .panel,#approval .panel,#ihpau .panel,#concept .panel,#new .panel{box-shadow:0 16px 45px rgba(14,58,116,.06)}
+.hero{background:linear-gradient(120deg,var(--hero-from) 0%,var(--hero-mid) 64%,var(--hero-to) 100%);border-radius:24px;padding:clamp(20px,3vw,30px);margin-bottom:18px;color:white;position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(11,46,94,.18)}
+.hero .kicker{font-size:10px;letter-spacing:1.8px;color:#dce6ed;font-weight:800}
+.loginWrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#e8eef6,#f7f8f4 55%,#eef6ef)}
+.loginCard{width:min(440px,100%);background:white;border:1px solid #dfe4e8;border-radius:24px;padding:34px;box-shadow:0 28px 80px rgba(14,58,116,.12)}
+.loginCrest{width:84px;height:84px;display:block;margin:0 auto 12px;border-radius:50%}
+.wfBtn{min-width:44px}
 @media(max-width:1050px){.cards{grid-template-columns:1fr 1fr}.app{grid-template-columns:230px 1fr}.main{padding:28px 24px}}
 @media(max-width:760px){.app{grid-template-columns:1fr}.side{height:auto;position:relative;padding:20px}.sub{margin-bottom:15px}.nav{display:flex;overflow:auto;gap:5px}.nav button{min-width:max-content}.cards,.actions,.formgrid,.split{grid-template-columns:1fr}.field.full{grid-column:auto}.main{padding:22px 15px}.top{align-items:flex-start}.top h1{font-size:24px}.role{max-width:150px}}
 
@@ -115,14 +139,38 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 </style>
 </head>
 <body>
-<div id="loginScreen" style="min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#eef1f4,#f8f8f6)">
- <div style="width:min(440px,100%);background:white;border:1px solid #dfe4e8;border-radius:26px;padding:34px;box-shadow:0 28px 80px rgba(31,43,57,.12)">
-  <div class="label">MINISTRY OF HEALTH • SRHR PROJECT</div>
-  <h1 style="font:800 29px/1.15 Manrope;margin:8px 0 6px">Sign in to SRHR-RAMS</h1>
-  <p class="small">Your account determines the workspace, data and actions available to you.</p>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-stamp" viewBox="0 0 24 24"><path d="M9 12V8a3 3 0 1 1 6 0v4"/><path d="M5 12h14v3a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3z"/><path d="M4 20h16"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+ <symbol fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" id="i-warn" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+</svg>
+<div id="loginScreen" class="loginWrap">
+ <div class="loginCard">
+  <img class="loginCrest" src="/moh-logo.jpg" alt="Ministry of Health, Government of Sierra Leone">
+  <div class="label" style="text-align:center">MINISTRY OF HEALTH • SRHR PROJECT</div>
+  <h1 style="font:800 29px/1.15 Manrope;margin:8px 0 6px;text-align:center">Sign in to SRHR-RAMS</h1>
+  <p class="small" style="text-align:center">Your account determines the workspace, data and actions available to you.</p>
   <div class="field" style="margin-top:22px"><label>Username</label><input id="loginUser" autocomplete="username" placeholder="Enter username"></div>
   <div class="field" style="margin-top:13px"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
-  <div id="loginError" style="color:#b23c36;font-size:12px;margin-top:10px"></div>
+  <div id="loginError" style="color:#c41e3a;font-size:12px;margin-top:10px"></div>
   <button class="btn" style="width:100%;margin-top:16px" onclick="login()">Sign In</button>
   <p class="small" style="margin-top:17px">Prototype authentication. Production passwords will be securely hashed and validated by the server.</p>
  </div>
@@ -130,36 +178,46 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div id="secureApp" style="display:none">
 <div class="app">
 <aside class="side">
-<div class="brand">SRHR-RAMS</div><div class="sub">Request & Activity Management System</div>
+<div class="brand"><img src="/moh-logo.jpg" alt="Ministry of Health crest">SRHR-RAMS</div><div class="sub">Request & Activity Management System</div>
 <div class="nav">
-<button class="active" data-v="dashboard">Dashboard</button>
-<button data-v="new">New Request</button><button data-v="concept">Concept Note</button>
-<button data-v="requests">My Requests</button>
-<button data-v="secretary">Secretary Desk</button>
-<button data-v="approval">Chairman Approval</button>
-<button data-v="ihpau">IHPAU Desk</button>
-<button data-v="admin">Admin Control Centre</button><button data-v="alerts">Alerts & Reminders</button><button data-v="register">Automatic Register</button>
+<button class="active" data-v="dashboard"><svg class="ico lg"><use href="#i-home"></use></svg> Dashboard</button>
+<button data-v="new"><svg class="ico lg"><use href="#i-plus"></use></svg> New Request</button>
+<button data-v="concept"><svg class="ico lg"><use href="#i-file"></use></svg> Concept Note</button>
+<button data-v="requests"><svg class="ico lg"><use href="#i-list"></use></svg> My Requests</button>
+<button data-v="secretary"><svg class="ico lg"><use href="#i-inbox"></use></svg> Secretary Desk</button>
+<button data-v="approval"><svg class="ico lg"><use href="#i-stamp"></use></svg> Chairman Approval</button>
+<button data-v="ihpau"><svg class="ico lg"><use href="#i-briefcase"></use></svg> IHPAU Desk</button>
+<button data-v="admin"><svg class="ico lg"><use href="#i-settings"></use></svg> Admin Control Centre</button>
+<button data-v="alerts"><svg class="ico lg"><use href="#i-alert"></use></svg> Alerts & Reminders</button>
+<button data-v="register"><svg class="ico lg"><use href="#i-book"></use></svg> Automatic Register</button>
 </div>
 </aside>
 <main class="main">
-<div class="top"><div style="display:flex;gap:9px;align-items:center"><button class="btn secondary mobileMenu" onclick="toggleMobileMenu()" aria-label="Open menu">☰</button><div><h1 id="title">Directorate Dashboard</h1><div class="small">Sexual and Reproductive Health and Rights Project</div></div></div><div style="display:flex;gap:9px;align-items:center">
-<button class="btn secondary" onclick="openNotifications()">🔔 Alerts <span id="alertCount" class="badge warn">0</span></button>
-<button class="btn secondary" onclick="logout()">Sign Out</button><select class="role" id="role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
+<div class="top"><div style="display:flex;gap:9px;align-items:center"><button class="btn secondary mobileMenu" onclick="toggleMobileMenu()" aria-label="Open menu"><svg class="ico lg"><use href="#i-menu"></use></svg></button><div><h1 id="title">Directorate Dashboard</h1><div class="small">Sexual and Reproductive Health and Rights Project</div></div></div><div class="toolbar">
+<div class="themePick" role="group" aria-label="Interface colour">
+ <span>Colour</span>
+ <button type="button" class="swatch on" data-theme="navy" title="Crest navy" aria-label="Crest navy"></button>
+ <button type="button" class="swatch" data-theme="green" title="Crest green" aria-label="Crest green"></button>
+ <button type="button" class="swatch" data-theme="gold" title="Crest gold" aria-label="Crest gold"></button>
+</div>
+<button class="btn secondary" onclick="openNotifications()"><svg class="ico"><use href="#i-bell"></use></svg> Alerts <span id="alertCount" class="badge warn">0</span></button>
+<button class="btn secondary" onclick="logout()"><svg class="ico"><use href="#i-logout"></use></svg> Sign Out</button>
+<select class="role" id="role" aria-label="Workspace role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
 
 <section id="dashboard" class="view active">
 <div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div>
-<div style="background:linear-gradient(120deg,#202b39 0%,#34475d 64%,#50677d 100%);border-radius:24px;padding:28px 30px;margin-bottom:18px;color:white;position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(32,43,57,.16)">
+<div class="hero">
 <div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
-<div style="max-width:700px;position:relative"><div style="font-size:10px;letter-spacing:1.8px;color:#dce6ed;font-weight:800">MINISTRY OF HEALTH • SRHR PROJECT</div>
-<div style="font:800 29px/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
+<div style="max-width:700px;position:relative"><div class="kicker">MINISTRY OF HEALTH • SRHR PROJECT</div>
+<div style="font:800 clamp(22px,2.6vw,29px)/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
 <div style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
-<div style="margin-top:18px"><button class="btn" style="background:#dce6ed;color:#25384b;box-shadow:none" onclick="show('new')">Create New Request →</button></div></div></div>
+<div style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" onclick="show('new')"><svg class="ico"><use href="#i-plus"></use></svg> Create New Request</button></div></div></div>
 <div class="cards"><div class="card"><div class="label">MY REQUESTS</div><div class="metric">12</div></div><div class="card"><div class="label">AWAITING APPROVAL</div><div class="metric">3</div></div><div class="card"><div class="label">AT IHPAU</div><div class="metric">4</div></div><div class="card"><div class="label">COMPLETED</div><div class="metric">5</div></div></div>
 <h2>Create a request</h2><div class="actions">
-<div class="action" onclick="show('new');choose('online')"><b>✍ Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
-<div class="action" onclick="show('new');choose('upload')"><b>⬆ Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
+<div class="action" onclick="show('new');choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
+<div class="action" onclick="show('new');choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
 </div>
-<div class="panel"><h3>Recent Requests</h3><table><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr>
+<div class="panel"><h3>Recent Requests</h3><div class="tableWrap"><table><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr>
 <tr><td>SRHR-2026-0047</td><td>Operational</td><td>Administrative supportive supervision</td><td>NLe 348,000</td><td><span class="badge info">At IHPAU</span></td></tr>
 <tr><td>SRHR-2026-0046</td><td>Procurement</td><td>ICT equipment</td><td>NLe 126,500</td><td><span class="badge warn">Awaiting receipts</span></td></tr>
 <tr><td>SRHR-2026-0045</td><td>Operational</td><td>Training activity</td><td>NLe 82,000</td><td><span class="badge">Approved</span></td></tr></table></div>
@@ -168,8 +226,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <section id="new" class="view">
 <div class="requestSummary"><div><div class="label">SUMMARY BUDGET TOTAL</div><strong class="budgetAmount" data-budget-total>NLe 0.00</strong><div class="small" id="budgetUsdTotal"></div></div><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div></div>
 <div class="steps"><span class="step on">1 Start</span><span class="step">2 Request details</span><span class="step">3 Budget</span><span class="step">4 Documents</span><span class="step">5 Review & submit</span></div>
-<div id="start" class="panel"><h2>How would you like to start?</h2><div class="actions"><div class="action" onclick="choose('online')"><b>✍ Fill Request Online</b><span class="small">Enter all information directly in SRHR-RAMS.</span></div><div class="action" onclick="choose('upload')"><b>⬆ Upload Existing Excel Form</b><span class="small">The system will extract the request details and budget lines.</span></div></div></div>
-<div id="uploadbox" class="panel hide"><h2>Upload completed request form</h2><div class="upload"><b>SRHR Excel Request Form (.xlsx)</b><p class="small">Prototype extraction is mapped to the request template you supplied.</p><input type="file" accept=".xlsx,.xls" id="file"><br><br><button class="btn" onclick="extract()">Extract Information</button></div><div id="extract" class="extract"><h3>Extraction complete</h3><p><span class="ok">✓</span> Purpose, location, AWP code and budget lines detected. <span class="missing">Review required before submission.</span></p><button class="btn" onclick="openForm(true)">Review Extracted Information</button></div></div>
+<div id="start" class="panel"><h2>How would you like to start?</h2><div class="actions"><div class="action" onclick="choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Enter all information directly in SRHR-RAMS.</span></div><div class="action" onclick="choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Existing Excel Form</b><span class="small">The system will extract the request details and budget lines.</span></div></div></div>
+<div id="uploadbox" class="panel hide"><h2>Upload completed request form</h2><div class="upload"><b>SRHR Excel Request Form (.xlsx)</b><p class="small">Prototype extraction is mapped to the request template you supplied.</p><input type="file" accept=".xlsx,.xls" id="file"><br><br><button class="btn" onclick="extract()">Extract Information</button></div><div id="extract" class="extract"><h3>Extraction complete</h3><p><span class="ok"><svg class="ico"><use href="#i-check"></use></svg></span> Purpose, location, AWP code and budget lines detected. <span class="missing">Review required before submission.</span></p><button class="btn" onclick="openForm(true)">Review Extracted Information</button></div></div>
 <div id="onlinebox" class="panel hide"><h2>Request Details</h2>
 <div class="formgrid">
 <div class="field"><label>Request Type</label><select id="rtype" onchange="toggleProc()"><option>Operational</option><option>Procurement</option></select></div>
@@ -188,8 +246,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <p><button class="btn secondary" onclick="addLine()">+ Add Budget Line</button></p>
 <h3>Concept Note</h3>
 <div class="actions">
-<div class="action" onclick="show('concept');cnChoose('write')"><b>✍ Create Standard Concept Note</b><span class="small">Write it in SRHR-RAMS and attach it to this request.</span></div>
-<div class="action" onclick="show('concept');cnChoose('upload')"><b>⬆ Upload & Extract Concept Note</b><span class="small">Upload Word/PDF, extract the content, review and attach it.</span></div>
+<div class="action" onclick="show('concept');cnChoose('write')"><b><svg class="ico"><use href="#i-edit"></use></svg> Create Standard Concept Note</b><span class="small">Write it in SRHR-RAMS and attach it to this request.</span></div>
+<div class="action" onclick="show('concept');cnChoose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload & Extract Concept Note</b><span class="small">Upload Word/PDF, extract the content, review and attach it.</span></div>
 </div>
 <h3>Supporting Documents</h3><div class="formgrid"><div class="field"><label>Other Supporting Documents</label><input type="file" multiple></div><div class="field"><label>Additional Budget / Evidence</label><input type="file" multiple></div></div>
 <br><button class="btn secondary">Save Draft</button> <button class="btn" onclick="submitReq()">Review & Submit</button>
@@ -204,8 +262,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
     <h2>Concept Note</h2>
     <p class="small">Create a standard SRHR concept note in the system or upload an existing Word/PDF document for extraction and review.</p>
     <div class="actions">
-      <div class="action" onclick="cnChoose('write')"><b>✍ Write Concept Note Online</b><span class="small">Use the standardized SRHR concept note template.</span></div>
-      <div class="action" onclick="cnChoose('upload')"><b>⬆ Upload Existing Concept Note</b><span class="small">Extract Date, From, To, Through, title, narrative, objectives, budget and other fields.</span></div>
+      <div class="action" onclick="cnChoose('write')"><b><svg class="ico"><use href="#i-edit"></use></svg> Write Concept Note Online</b><span class="small">Use the standardized SRHR concept note template.</span></div>
+      <div class="action" onclick="cnChoose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Existing Concept Note</b><span class="small">Extract Date, From, To, Through, title, narrative, objectives, budget and other fields.</span></div>
     </div>
   </div>
 
@@ -370,10 +428,19 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <p class="small"><b>Forward-only reminder rule:</b> a reminder at Secretary stage goes to Chairman and IHPAU/Finance; a reminder at Chairman stage goes to IHPAU/Finance; a reminder at IHPAU stage stays with the designated IHPAU/Finance recipient. Earlier completed stages are not alerted.</p>
 </div></div></section>
 
-<section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></section>
+<section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><div class="tableWrap"><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></div></section>
 </main></div>
 <script src="/finance.js"></script>
 <script>
+function ico(name){return `<svg class="ico" aria-hidden="true"><use href="#i-${name}"></use></svg>`}
+function applyTheme(name){
+ const t=['navy','green','gold'].includes(name)?name:'navy';
+ document.documentElement.dataset.theme=t;
+ localStorage.setItem('srhrTheme',t);
+ document.querySelectorAll('.swatch').forEach(b=>b.classList.toggle('on',b.dataset.theme===t));
+}
+document.querySelectorAll('.swatch').forEach(b=>b.addEventListener('click',()=>applyTheme(b.dataset.theme)));
+applyTheme(localStorage.getItem('srhrTheme')||'navy');
 const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",register:"Automatic Register"};
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.getElementById('title').textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -521,9 +588,9 @@ function addAdminUser(){
 function channelList(u){return [u.inapp&&'In-App',u.emailOn&&'Email',u.wa&&'WhatsApp'].filter(Boolean)}
 function simulateDelivery(u,req,msg){
  let lines=[];
- if(u.inapp){addAlert(u.role,req,'Test notification',msg);lines.push(`✅ In-App → ${u.name}`)}
- if(u.emailOn) lines.push(u.email?`🧪 Email preview → ${u.email} (provider connection required for real delivery)`:'⚠️ Email enabled but address missing');
- if(u.wa) lines.push(u.phone?`🧪 WhatsApp preview → ${u.phone} (WhatsApp Business API connection required for real delivery)`:'⚠️ WhatsApp enabled but number missing');
+ if(u.inapp){addAlert(u.role,req,'Test notification',msg);lines.push(`${ico('check')} In-App to ${esc(u.name)}`)}
+ if(u.emailOn) lines.push(u.email?`${ico('mail')} Email preview to ${esc(u.email)} (provider connection required for real delivery)`:`${ico('warn')} Email enabled but address missing`);
+ if(u.wa) lines.push(u.phone?`${ico('chat')} WhatsApp preview to ${esc(u.phone)} (WhatsApp Business API connection required for real delivery)`:`${ico('warn')} WhatsApp enabled but number missing`);
  return lines;
 }
 function testUser(id){
@@ -531,7 +598,7 @@ function testUser(id){
  const req=document.getElementById('testReq')?.value||'SRHR-TEST-001';
  const msg='SRHR-RAMS test notification. No action is required.';
  const lines=simulateDelivery(u,req,msg);
- document.getElementById('testLog').innerHTML=`<b>Test for ${esc(u.name)}</b><br>${lines.join('<br>')||'⚠️ No notification channel enabled.'}`;
+ document.getElementById('testLog').innerHTML=`<b>Test for ${esc(u.name)}</b><br>${lines.join('<br>')||ico('warn')+' No notification channel enabled.'}`;
  alert('Notification test completed. Check Delivery Simulation and Alerts.');
 }
 function testWorkflowReminder(){
@@ -542,7 +609,7 @@ function testWorkflowReminder(){
  if(!stages.length&&stage==='IHPAU / Finance')stages=['IHPAU / Finance'];
  let targets=adminUsers.filter(u=>stages.includes(u.role)),lines=[];
  targets.forEach(u=>lines.push(...simulateDelivery(u,req,`${stage} reminder: ${msg}`)));
- document.getElementById('testLog').innerHTML=`<b>${esc(req)}</b><br>Triggered at: ${esc(stage)}<br>Forward recipients: ${stages.join(' → ')}<hr>${lines.join('<br>')||'No configured recipients found.'}`;
+ document.getElementById('testLog').innerHTML=`<b>${esc(req)}</b><br>Triggered at: ${esc(stage)}<br>Forward recipients: ${stages.join(' > ')}<hr>${lines.join('<br>')||'No configured recipients found.'}`;
  alert('Forward-only reminder test completed.');
 }
 function clearTestLog(){document.getElementById('testLog').textContent='No notification test has been run yet.'}
@@ -569,8 +636,8 @@ function reasonFor(action){
 function adminTool(type){
  const w=document.getElementById('adminWorkbench'); if(!w)return;
  if(type==='workflow'){
-  w.innerHTML=`<h3>Workflow Designer</h3><p class="small">Current order. Use ↑/↓ to change routing. Passed stages remain excluded from forward reminders.</p>
-  <div id="wfRows">${workflowConfig.map((s,i)=>`<div class="card" style="min-height:auto;margin:8px 0;display:flex;justify-content:space-between;align-items:center"><b>${i+1}. ${esc(s)}</b><div><button class="btn secondary" onclick="moveStage(${i},-1)">↑</button> <button class="btn secondary" onclick="moveStage(${i},1)">↓</button> <button class="btn secondary" onclick="renameStage(${i})">Rename</button></div></div>`).join('')}</div>
+  w.innerHTML=`<h3>Workflow Designer</h3><p class="small">Current order. Use the arrows to change routing. Passed stages remain excluded from forward reminders.</p>
+  <div id="wfRows">${workflowConfig.map((s,i)=>`<div class="card" style="min-height:auto;margin:8px 0;display:flex;justify-content:space-between;align-items:center"><b>${i+1}. ${esc(s)}</b><div><button class="btn secondary wfBtn" aria-label="Move up" onclick="moveStage(${i},-1)">${ico('up')}</button> <button class="btn secondary wfBtn" aria-label="Move down" onclick="moveStage(${i},1)">${ico('down')}</button> <button class="btn secondary" onclick="renameStage(${i})">Rename</button></div></div>`).join('')}</div>
   <button class="btn" onclick="addStage()">+ Add Stage</button>`;
  } else if(type==='permissions'){
   w.innerHTML=`<h3>Roles & Permissions</h3><p class="small">Prototype permission matrix. Toggle privileged capabilities by role.</p>
@@ -592,8 +659,8 @@ function adminTool(type){
   w.innerHTML=`<h3>Administrator Audit & Recovery</h3><p class="small">Privileged changes are append-only in this prototype view.</p><div style="overflow:auto"><table><thead><tr><th>Time</th><th>Administrator</th><th>Action</th><th>Detail / Reason</th></tr></thead><tbody>${adminAudit.map(a=>`<tr><td>${esc(a.time)}</td><td>${esc(a.admin)}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.detail)}</td></tr>`).join('')||'<tr><td colspan="4">No privileged actions recorded yet.</td></tr>'}</tbody></table></div><div style="margin-top:12px"><button class="btn secondary" onclick="exportAudit()">Export Audit Log</button> <button class="btn secondary" onclick="snapshotConfig()">Create Configuration Snapshot</button></div>`;
  }
 }
-function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' → '));adminTool('workflow')}
-function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} → ${n}`);adminTool('workflow')}
+function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' > '));adminTool('workflow')}
+function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} > ${n}`);adminTool('workflow')}
 function addStage(){let n=prompt('New workflow stage name:');if(!n)return;workflowConfig.push(n);persistConfig();audit('Workflow stage added',n);adminTool('workflow')}
 function interveneRequest(){let id=document.getElementById('adminReq').value,act=document.getElementById('adminReqAction').value,r=reasonFor(act);if(!r)return;addAlert('Administrator',id,'Admin intervention',`${act}. Reason: ${r}`);audit('Request intervention',`${id}: ${act}. Reason: ${r}`);alert('Controlled intervention recorded. Original history remains preserved.')}
 function saveNotifRules(){systemConfig.reminderHours=+document.getElementById('remH').value;systemConfig.maxReminders=+document.getElementById('maxR').value;persistConfig();audit('Notification rules changed',`Escalation ${systemConfig.reminderHours}h; max reminders ${systemConfig.maxReminders}`);alert('Notification rules saved.')}
@@ -828,7 +895,7 @@ async function editAccountRole(id,current){
  const r=reasonFor(`change role to ${role}`);if(!r)return;
  try{
    await authApi(`/api/admin/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({role})});
-   audit('Account role changed',`${id}: ${current} → ${role}. Reason: ${r}`);await accountManager();
+   audit('Account role changed',`${id}: ${current} > ${role}. Reason: ${r}`);await accountManager();
  }catch(e){alert(e.message)}
 }
 

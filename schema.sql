@@ -16,9 +16,9 @@ CREATE INDEX idx_notifications_user ON notifications(recipient_user_id,created_a
 INSERT INTO entities(name,acronym) VALUES
 ('Directorate of Policy, Planning and Information','DPPI'),('Directorate of Reproductive and Child Health','DRCH'),('Directorate of Primary Health Care','DPHC'),('Directorate of Hospital and Ambulances Service','DHAS'),('Sierra Leone Social Health Insurance','SLeSHI'),('Gender','GENDER'),('National Emergency Medical Services','NEMS'),('National Medical Supplies Agency','NMSA'),('Donor and Coordination','DONOR'),('College of Medicine and Allied Health Sciences','COMAHS'),('Post Graduate','POST GRADUATE');
 INSERT INTO users(name,username,password_hash,role,entity) VALUES
-('Directorate User','directorate','pbkdf2_sha256$120000$VjDs71S/EoAVr5j6ZoucBw==$L3hBfBhhwAO6okqZLtW57HfLS+unxK7PI+D8+hdVLVY=','Directorate User','DPPI'),
-('Project Secretary','secretary','pbkdf2_sha256$120000$XGMyDSR8uRCYv7fNbardwQ==$/1UBsUUrGbskNSuNfSn7L7nQqfs+iPt4VJM2RC0rAs4=','Project Secretary','SRHR Project'),
-('Chairman','chairman','pbkdf2_sha256$120000$79joC/gbgUJTYfUqRR3VfA==$ULYNQMEuDfLDMZg7Z50m4Qbau73wNNN8tv58h/8s1Vk=','Chairman','SRHR Project'),
-('IHPAU Finance','finance','pbkdf2_sha256$120000$m1w75esChpVQTW0PFL+YJw==$trcHITf7mGI++yAk6jW54uNM02XD+xMgS2ceztb93Bo=','IHPAU','IHPAU'),
-('System Administrator','admin','pbkdf2_sha256$120000$h7s6IF69YE6hzmEPdGu4MQ==$A9Vs+z7zHO8nOZxToOlaJ0VQcmk8aziLh5yWWj1RSx4=','Administrator','System');
+('Directorate User','directorate','pbkdf2_sha256$100000$uV1suxqn2Xq3xRLfyHI0jQ==$qB9XJc73+hja+w7C69AKJCfkUZmIJkEU82PA6W33z7k=','Directorate User','DPPI'),
+('Project Secretary','secretary','pbkdf2_sha256$100000$jPyu9pqWWOsed0f6IxtXTQ==$wav5sVjkQvqiUkqN38cGjT+2I8GAoSFALd6pUL1btGI=','Project Secretary','SRHR Project'),
+('Chairman','chairman','pbkdf2_sha256$100000$dUqiV0T02by3yFrctr/K6w==$IYHEtwbzyHXHS9YRxfubIMIcqKOfaY7CVZHbXVaDwZY=','Chairman','SRHR Project'),
+('IHPAU Finance','finance','pbkdf2_sha256$100000$+V+XuuKq6C16SnUx64cBaA==$8hXhiQTi0j7xSoINgzZoNN2gmT5NYk+pJhvkk9yRO/Y=','IHPAU','IHPAU'),
+('System Administrator','admin','pbkdf2_sha256$100000$+zE60tvuzTAhowrbdWX8dw==$cTtAcy9FRqjjFNO1NG+g1WAyQ7DwP9J2oUZQ/xXyT1g=','Administrator','System');
 INSERT INTO system_settings(key,value) VALUES('request_prefix','SRHR'),('currency','NLe'),('reminder_hours','24'),('max_reminders','3');
