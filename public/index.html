@@ -49,7 +49,11 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
 .nav button .ico{color:#9cbcdb;transition:color .2s ease;flex-shrink:0}
 .nav button:hover .ico{color:#fff}
 .navText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sideFoot{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);position:relative;z-index:2;width:100%}
+.sideFoot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);position:relative;z-index:2;width:100%}
+.sideRole{margin-bottom:10px;display:flex;flex-direction:column;gap:4px}
+.sideRoleLabel{font-size:9.5px;font-weight:700;letter-spacing:.8px;color:#8fb9ea;text-transform:uppercase}
+.sideRoleSelect{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;padding:8px 10px;border-radius:9px;font:600 12px "DM Sans",sans-serif;cursor:pointer;width:100%}
+.sideRoleSelect option{background:#092042;color:#fff}
 .sideLogoutBtn{display:flex;align-items:center;gap:11px;width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#dce7f3;padding:11px 13px;border-radius:11px;cursor:pointer;font:600 13px/1 "DM Sans",sans-serif;transition:all .2s ease;text-align:left;position:relative}
 .sideLogoutBtn:hover{background:rgba(196,30,58,.22);border-color:rgba(196,30,58,.45);color:#fff}
 .sideLogoutBtn .ico{color:#dce7f3;transition:transform .2s ease,color .2s ease;flex-shrink:0}
@@ -62,7 +66,8 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
 .app.collapsed .brand img{width:36px;height:36px}
 .app.collapsed .brandText,
 .app.collapsed .sub,
-.app.collapsed .navText{display:none!important}
+.app.collapsed .navText,
+.app.collapsed .sideRole{display:none!important}
 .app.collapsed .sideToggleBtn{width:28px;height:28px}
 .app.collapsed .nav{width:100%}
 .app.collapsed .nav button{justify-content:center;padding:12px 0;border-radius:10px}
@@ -77,15 +82,8 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
 }
 
 /* Main Workspace */
-.main{padding:clamp(18px,2.8vw,36px) clamp(16px,2.8vw,38px) 70px;max-width:1680px;width:100%;margin:0 auto;min-width:0}
-.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid rgba(14,58,116,.08)}
-.topLeading{display:flex;align-items:center;gap:12px;min-width:0}
-.topBreadcrumb{font-size:10.5px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
-.top h1{margin:0;font:800 clamp(22px,2.3vw,28px)/1.2 Manrope,sans-serif;letter-spacing:-.8px;color:var(--ink)}
+.main{padding:clamp(20px,2.8vw,36px) clamp(16px,2.8vw,38px) 70px;max-width:1680px;width:100%;margin:0 auto;min-width:0}
 .small{font-size:12px;color:var(--muted)}
-.sidebarToggle{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;padding:0;flex-shrink:0}
-.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.role{background:#fff;border:1px solid var(--line);padding:10px 14px;border-radius:11px;font-weight:600;font-size:13px;color:var(--ink);box-shadow:0 4px 14px rgba(14,58,116,.04);min-width:min(200px,100%)}
 
 /* Cards & Panels */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px}
@@ -147,7 +145,6 @@ textarea{min-height:94px;resize:vertical}
 .event:before{content:"";width:9px;height:9px;background:var(--gold);border:3px solid var(--forest);border-radius:50%;position:absolute;left:-30px;top:3px}
 .split{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:17px}
 .hide{display:none}
-#dashboard:before{content:"REQUEST CONTROL CENTRE";display:inline-block;font:800 10px Manrope;letter-spacing:1.5px;color:#667b8d;margin-bottom:12px}
 #dashboard .panel{margin-top:20px}
 #register .panel,#secretary .panel,#approval .panel,#ihpau .panel,#concept .panel,#new .panel{box-shadow:0 14px 40px rgba(14,58,116,.05)}
 .hero{background:linear-gradient(120deg,var(--hero-from) 0%,var(--hero-mid) 64%,var(--hero-to) 100%);border-radius:22px;padding:clamp(20px,3vw,30px);margin-bottom:18px;color:white;position:relative;overflow:hidden;box-shadow:0 18px 46px rgba(11,46,94,.16)}
@@ -189,10 +186,6 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  .menuBackdrop.open{display:block}
  body.menuOpen{overflow:hidden}
  .main{padding:16px 14px 60px}
- .top{flex-direction:column;align-items:stretch;gap:14px}
- .topLeading{width:100%;justify-content:flex-start}
- .toolbar{width:100%;justify-content:flex-start;gap:8px}
- .toolbar .role{flex:1;min-width:140px}
  .btn,.nav button{min-height:42px}
  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
  .steps{overflow-x:auto;max-width:100%}
@@ -276,10 +269,14 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <button data-v="approval" data-tooltip="Chairman Approval"><svg class="ico lg"><use href="#i-stamp"></use></svg> <span class="navText">Chairman Approval</span></button>
 <button data-v="ihpau" data-tooltip="IHPAU Desk"><svg class="ico lg"><use href="#i-briefcase"></use></svg> <span class="navText">IHPAU Desk</span></button>
 <button data-v="admin" data-tooltip="Admin Control Centre"><svg class="ico lg"><use href="#i-settings"></use></svg> <span class="navText">Admin Control Centre</span></button>
-<button data-v="alerts" data-tooltip="Alerts & Reminders"><svg class="ico lg"><use href="#i-alert"></use></svg> <span class="navText">Alerts & Reminders</span></button>
+<button data-v="alerts" data-tooltip="Alerts & Reminders"><svg class="ico lg"><use href="#i-alert"></use></svg> <span class="navText">Alerts & Reminders</span> <span id="alertCount" class="badge warn" style="margin-left:auto;font-size:10px;padding:2px 7px">0</span></button>
 <button data-v="register" data-tooltip="Automatic Register"><svg class="ico lg"><use href="#i-book"></use></svg> <span class="navText">Automatic Register</span></button>
 </div>
 <div class="sideFoot">
+ <div class="sideRole">
+  <span class="sideRoleLabel">Active Role</span>
+  <select class="role sideRoleSelect" id="role" aria-label="Workspace role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select>
+ </div>
  <button type="button" class="sideLogoutBtn" onclick="logout()" data-tooltip="Log Out" aria-label="Log Out">
   <svg class="ico lg"><use href="#i-logout"></use></svg>
   <span class="navText">Log Out</span>
@@ -287,12 +284,10 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 </div>
 </aside>
 <main class="main">
-<div class="top"><div class="topLeading"><button type="button" class="btn secondary sidebarToggle" id="topSidebarToggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar"><svg class="ico lg"><use href="#i-panel-left"></use></svg></button><div><div class="topBreadcrumb">SRHR-RAMS • MINISTRY OF HEALTH SIERRA LEONE</div><h1 id="title">Directorate Dashboard</h1></div></div><div class="toolbar">
-<button class="btn secondary" onclick="openNotifications()"><svg class="ico"><use href="#i-bell"></use></svg> Alerts <span id="alertCount" class="badge warn">0</span></button>
-<select class="role" id="role" aria-label="Workspace role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
+<button type="button" class="btn secondary floatingMobileMenu" onclick="toggleSidebar()" aria-label="Open menu" title="Open menu"><svg class="ico lg"><use href="#i-menu"></use></svg></button>
+<span id="title" style="display:none">Directorate Dashboard</span>
 
 <section id="dashboard" class="view active">
-<div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div>
 <div class="hero">
 <div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
 <div style="max-width:700px;position:relative"><div class="kicker">MINISTRY OF HEALTH • SRHR PROJECT</div>
@@ -553,7 +548,7 @@ if(localStorage.getItem('srhrSidebarCollapsed')==='1'&&window.innerWidth>900){
  }
 }
 const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",register:"Automatic Register"};
-function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.getElementById('title').textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
+function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 function choose(x){document.getElementById('start').classList.add('hide');document.getElementById('uploadbox').classList.toggle('hide',x!=='upload');document.getElementById('onlinebox').classList.toggle('hide',x!=='online')}
 function extract(){document.getElementById('extract').style.display='block'}
