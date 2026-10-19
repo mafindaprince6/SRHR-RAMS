@@ -49,6 +49,11 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
 .nav button .ico{color:#9cbcdb;transition:color .2s ease;flex-shrink:0}
 .nav button:hover .ico{color:#fff}
 .navText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sideFoot{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);position:relative;z-index:2;width:100%}
+.sideLogoutBtn{display:flex;align-items:center;gap:11px;width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#dce7f3;padding:11px 13px;border-radius:11px;cursor:pointer;font:600 13px/1 "DM Sans",sans-serif;transition:all .2s ease;text-align:left;position:relative}
+.sideLogoutBtn:hover{background:rgba(196,30,58,.22);border-color:rgba(196,30,58,.45);color:#fff}
+.sideLogoutBtn .ico{color:#dce7f3;transition:transform .2s ease,color .2s ease;flex-shrink:0}
+.sideLogoutBtn:hover .ico{transform:translateX(2px);color:#ff9aa8}
 
 /* Collapsed Sidebar State */
 .app.collapsed .side{padding:20px 10px;align-items:center}
@@ -61,7 +66,10 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
 .app.collapsed .sideToggleBtn{width:28px;height:28px}
 .app.collapsed .nav{width:100%}
 .app.collapsed .nav button{justify-content:center;padding:12px 0;border-radius:10px}
-.app.collapsed .nav button:hover::after{
+.app.collapsed .sideFoot{padding-top:12px;width:100%}
+.app.collapsed .sideLogoutBtn{justify-content:center;padding:12px 0;border-radius:10px}
+.app.collapsed .nav button:hover::after,
+.app.collapsed .sideLogoutBtn:hover::after{
  content:attr(data-tooltip);position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);
  background:#081f40;color:#fff;font-size:11.5px;font-weight:600;white-space:nowrap;padding:6px 12px;
  border-radius:8px;border:1px solid rgba(255,255,255,.16);box-shadow:0 8px 24px rgba(0,0,0,.28);
@@ -241,12 +249,12 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  <div class="loginCard">
   <img class="loginCrest" src="/moh-logo.jpg" alt="Ministry of Health, Government of Sierra Leone">
   <div class="label" style="text-align:center">MINISTRY OF HEALTH • SRHR PROJECT</div>
-  <h1 style="font:800 29px/1.15 Manrope;margin:8px 0 6px;text-align:center">Sign in to SRHR-RAMS</h1>
+  <h1 style="font:800 29px/1.15 Manrope;margin:8px 0 6px;text-align:center">Login to SRHR-RAMS</h1>
   <p class="small" style="text-align:center">Your account determines the workspace, data and actions available to you.</p>
   <div class="field" style="margin-top:22px"><label>Username</label><input id="loginUser" autocomplete="username" placeholder="Enter username"></div>
   <div class="field" style="margin-top:13px"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
   <div id="loginError" style="color:#c41e3a;font-size:12px;margin-top:10px"></div>
-  <button class="btn" style="width:100%;margin-top:16px" onclick="login()">Sign In</button>
+  <button class="btn" style="width:100%;margin-top:16px" onclick="login()">Login</button>
   <p class="small" style="margin-top:17px">Prototype authentication. Production passwords will be securely hashed and validated by the server.</p>
  </div>
 </div>
@@ -271,11 +279,16 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <button data-v="alerts" data-tooltip="Alerts & Reminders"><svg class="ico lg"><use href="#i-alert"></use></svg> <span class="navText">Alerts & Reminders</span></button>
 <button data-v="register" data-tooltip="Automatic Register"><svg class="ico lg"><use href="#i-book"></use></svg> <span class="navText">Automatic Register</span></button>
 </div>
+<div class="sideFoot">
+ <button type="button" class="sideLogoutBtn" onclick="logout()" data-tooltip="Log Out" aria-label="Log Out">
+  <svg class="ico lg"><use href="#i-logout"></use></svg>
+  <span class="navText">Log Out</span>
+ </button>
+</div>
 </aside>
 <main class="main">
 <div class="top"><div class="topLeading"><button type="button" class="btn secondary sidebarToggle" id="topSidebarToggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar"><svg class="ico lg"><use href="#i-panel-left"></use></svg></button><div><div class="topBreadcrumb">SRHR-RAMS • MINISTRY OF HEALTH SIERRA LEONE</div><h1 id="title">Directorate Dashboard</h1></div></div><div class="toolbar">
 <button class="btn secondary" onclick="openNotifications()"><svg class="ico"><use href="#i-bell"></use></svg> Alerts <span id="alertCount" class="badge warn">0</span></button>
-<button class="btn secondary" onclick="logout()"><svg class="ico"><use href="#i-logout"></use></svg> Sign Out</button>
 <select class="role" id="role" aria-label="Workspace role"><option>Directorate User</option><option>Project Secretary</option><option>Chairman</option><option>IHPAU</option><option>Administrator</option></select></div></div>
 
 <section id="dashboard" class="view active">
@@ -656,7 +669,7 @@ document.getElementById('role').addEventListener('change',e=>{
  show(map[role]||'dashboard');
 });
 renderAlerts();
-document.addEventListener('click',e=>{if(innerWidth<=900&&e.target.closest('.nav button'))toggleSidebar(false)});
+document.addEventListener('click',e=>{if(innerWidth<=900&&e.target.closest('.nav button, .sideLogoutBtn'))toggleSidebar(false)});
 
 let adminUsers=JSON.parse(localStorage.getItem('srhrUsers')||'null')||[
  {id:1,name:'Directorate Focal Person',role:'Directorate',team:'Submitting Directorate',email:'directorate@example.gov.sl',phone:'+23200000001',inapp:true,emailOn:true,wa:true},
