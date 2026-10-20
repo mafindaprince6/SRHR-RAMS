@@ -20,7 +20,7 @@
 body{margin:0;font:14px/1.55 "DM Sans",Segoe UI,sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;transition:background .25s ease}
 body[data-workspace="directorate"]{--forest:#0a3d4a;--forest2:#0f5c6b;--emerald:#0f766e;--hero-from:#08343d;--hero-mid:#0e5560;--hero-to:#0f766e;--side-from:#06262d;--side-mid:#0a3d4a;--side-to:#0f5c6b;--accent:#0f766e;--accent-soft:#e7f6f4;--gold:#2dd4bf;--cream:#f3faf8}
 body[data-workspace="secretary"]{--forest:#5c3b12;--forest2:#9a3412;--emerald:#c2410c;--hero-from:#3f2a12;--hero-mid:#7c2d12;--hero-to:#c2410c;--side-from:#2a1c0c;--side-mid:#4a3014;--side-to:#7c4a16;--accent:#9a3412;--accent-soft:#fff7ed;--gold:#f59e0b;--cream:#fbf6ef;--ring:#ea580c}
-body[data-workspace="chairman"]{--forest:#4c1d2a;--forest2:#7f1d1d;--emerald:#9f1239;--hero-from:#3b1020;--hero-mid:#6b1830;--hero-to:#9f1239;--side-from:#2a0d16;--side-mid:#4c1d2a;--side-to:#7f1d1d;--accent:#9f1239;--accent-soft:#fff1f2;--gold:#eab308;--cream:#fdf6f6;--ring:#be123c}
+body[data-workspace="chairman"]{--forest:#0a2954;--forest2:#0e3a74;--emerald:#1f7a3a;--hero-from:#082247;--hero-mid:#0e356c;--hero-to:#164b91;--side-from:#081f40;--side-mid:#0c2d5a;--side-to:#123e78;--accent:#0e3a74;--accent-soft:#eaf2fb;--gold:#d4a017;--cream:#f4f7fb;--ring:#2b74e2}
 body[data-workspace="ihpau"]{--forest:#14532d;--forest2:#166534;--emerald:#15803d;--hero-from:#052e16;--hero-mid:#14532d;--hero-to:#166534;--side-from:#052e16;--side-mid:#14532d;--side-to:#166534;--accent:#15803d;--accent-soft:#ecfdf3;--gold:#84cc16;--cream:#f3faf5;--ring:#16a34a}
 body[data-workspace="administrator"]{--forest:#1e293b;--forest2:#334155;--emerald:#475569;--hero-from:#0f172a;--hero-mid:#1e293b;--hero-to:#334155;--side-from:#0f172a;--side-mid:#1e293b;--side-to:#334155;--accent:#334155;--accent-soft:#f1f5f9;--gold:#94a3b8;--cream:#f8fafc;--ring:#64748b}
 .roleHero{background:linear-gradient(120deg,var(--hero-from) 0%,var(--hero-mid) 62%,var(--hero-to) 100%);border-radius:22px;padding:clamp(20px,3vw,30px);color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 46px rgba(11,46,94,.16)}
@@ -469,6 +469,9 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <p id="usdRateStatus" class="small" role="status"></p>
 <div id="usdRateHistory" class="small"></div></div><div class="panel"><h2>IHPAU Processing Desk</h2><p class="small">Finance status must be one of the approved steps. Closing is refused while a receipt is still pending, a recorded deliverable is unverified, or a legal hold is set.</p>
 <div id="receiptVerifyQueue" class="small">Open this desk to load receipts awaiting verification.</div>
+<div id="deliverableQueue" class="small" style="margin-top:14px">Open this desk to load deliverables.</div>
+<form id="deliverableForm" class="formgrid" style="margin-top:14px"><div class="field"><label for="deliverableRequest">Request reference</label><input id="deliverableRequest" placeholder="SRHR-2026-010007"></div><div class="field"><label for="deliverableTitle">Deliverable</label><input id="deliverableTitle" placeholder="Session report"></div><div class="field"><label for="deliverableDue">Due date</label><input id="deliverableDue" type="date"></div><div class="field" style="justify-content:flex-end"><button class="btn" type="submit">Record deliverable</button></div></form>
+<p id="deliverableState" class="small" role="status"></p>
 <div class="tableWrap"><table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Amount</th><th>Action</th></tr></thead><tbody id="ihpauQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
 
 
@@ -812,25 +815,35 @@ function reasonFor(action){
 function adminTool(type){
  const w=document.getElementById('adminWorkbench'); if(!w)return;
  if(type==='workflow'){
-  w.innerHTML=`<h3>Workflow Designer</h3><p class="small">Current order. Use the arrows to change routing. Passed stages remain excluded from forward reminders.</p>
-  <div id="wfRows">${workflowConfig.map((s,i)=>`<div class="card" style="min-height:auto;margin:8px 0;display:flex;justify-content:space-between;align-items:center"><b>${i+1}. ${esc(s)}</b><div><button class="btn secondary wfBtn" aria-label="Move up" onclick="moveStage(${i},-1)">${ico('up')}</button> <button class="btn secondary wfBtn" aria-label="Move down" onclick="moveStage(${i},1)">${ico('down')}</button> <button class="btn secondary" onclick="renameStage(${i})">Rename</button></div></div>`).join('')}</div>
-  <button class="btn" onclick="addStage()">+ Add Stage</button>`;
+  w.innerHTML=`<h3>Workflow</h3><p class="small">These desks are enforced by the server. Renaming or reordering them in this browser does not change who can act, and a request cannot skip a desk.</p>
+  <ol><li><b>Directorate</b> — draft and submit</li><li><b>Project Secretary</b> — clear or return</li><li><b>Chairman</b> — approve, query, or reject</li><li><b>IHPAU / Finance</b> — disburse, check receipts, and close</li></ol>
+  <p class="small">An administrator can take the action of the desk that currently holds the request, and must give a reason.</p>`;
  } else if(type==='permissions'){
   w.innerHTML=`<h3>Roles & Permissions</h3><p class="small">Prototype permission matrix. Toggle privileged capabilities by role.</p>
   <table><thead><tr><th>Role</th><th>View All</th><th>Edit</th><th>Approve</th><th>Finance</th><th>Admin</th></tr></thead><tbody>
   ${['Directorate','Project Secretary','Chairman','IHPAU / Finance','Administrator'].map(r=>`<tr><td><b>${r}</b></td>${['View All','Edit','Approve','Finance','Admin'].map(p=>`<td><input type="checkbox" ${r==='Administrator'?'checked':''} onchange="audit('Permission changed','${r}: ${p} = '+this.checked)"></td>`).join('')}</tr>`).join('')}</tbody></table>`;
  } else if(type==='requests'){
-  w.innerHTML=`<h3>Request Intervention</h3><div class="formgrid"><div class="field"><label>Request reference or ID</label><input id="adminReq" value="SRHR-2026-0050"></div><div class="field"><label>Action</label><select id="adminReqAction"><option>Place legal hold</option><option>Release legal hold</option><option>Reassign current owner</option><option>Move to another stage</option><option>Reopen closed request</option><option>Correct metadata</option></select></div><div class="field full"><label for="adminReqNote">Reason</label><textarea id="adminReqNote" placeholder="Required for every intervention"></textarea></div></div><button class="btn" style="margin-top:12px" onclick="interveneRequest()">Apply Controlled Intervention</button><p class="small">Legal hold and release call the server immediately. Other actions remain logged here until a dedicated API is added.</p>`;
+  w.innerHTML=`<h3>Request intervention</h3><p class="small">Legal hold is applied on the server. Moving a request to another stage, reopening it, or reassigning it from this screen is not available, because that would skip the desk that holds it.</p>
+  <div class="formgrid"><div class="field"><label for="adminReq">Request reference or ID</label><input id="adminReq" placeholder="SRHR-2026-010005"></div><div class="field"><label for="adminReqAction">Action</label><select id="adminReqAction"><option>Place legal hold</option><option>Release legal hold</option></select></div><div class="field full"><label for="adminReqNote">Reason</label><textarea id="adminReqNote" placeholder="Required for every intervention"></textarea></div></div><button class="btn" style="margin-top:12px" type="button" onclick="interveneRequest()">Apply legal hold change</button>`;
  } else if(type==='notifications'){
-  w.innerHTML=`<h3>Notification & Escalation Rules</h3><div class="formgrid"><div class="field"><label>Escalate after (hours)</label><input type="number" id="remH" value="${systemConfig.reminderHours}"></div><div class="field"><label>Maximum reminders per stage</label><input type="number" id="maxR" value="${systemConfig.maxReminders}"></div></div><button class="btn" style="margin-top:12px" onclick="saveNotifRules()">Save Rules</button>`;
+  w.innerHTML=`<h3>Notifications</h3><p class="small">In-app alerts are stored when a desk acts. Email and SMS are not configured, and there is no scheduled reminder job. The numbers below are saved for operators; they are not sent automatically.</p>
+  <div class="formgrid"><div class="field"><label for="remH">Record a waiting time after (hours)</label><input type="number" id="remH" min="1" max="168" value="${systemConfig.reminderHours}"></div><div class="field"><label for="maxR">Maximum reminders to record</label><input type="number" id="maxR" min="1" max="10" value="${systemConfig.maxReminders}"></div><div class="field full"><label for="settingsNote">Reason</label><textarea id="settingsNote" placeholder="Why this change is being saved"></textarea></div></div>
+  <button class="btn" style="margin-top:12px" type="button" onclick="saveServerSettings('notifications')">Save on the server</button><p id="settingsState" class="small" role="status"></p>`;
+  loadServerSettings();
  } else if(type==='entities'){
   w.innerHTML=`<h3>Directorates & Implementing Entities</h3><p class="small">Manage organizational units and designated focal persons.</p><button class="btn" onclick="simpleAdminAction('Entity created','Create new Directorate / Implementing Entity')">+ Add Entity</button> <button class="btn secondary" onclick="simpleAdminAction('Focal person reassigned','Reassign focal person')">Reassign Focal Person</button>`;
  } else if(type==='templates'){
-  w.innerHTML=`<h3>Forms & Template Versions</h3><p class="small">Control which Request Form and Concept Note templates are active for new submissions.</p><button class="btn" onclick="simpleAdminAction('Template version activated','Activate new template version')">Activate New Version</button> <button class="btn secondary" onclick="simpleAdminAction('Template archived','Archive template')">Archive Version</button>`;
+  w.innerHTML=`<h3>Forms</h3><p class="small">The request form and concept note in this application are the active templates. Switching template versions is not configured.</p>`;
  } else if(type==='finance'){
-  w.innerHTML=`<h3>Finance Configuration</h3><div class="formgrid"><div class="field"><label>Primary Currency</label><select id="cfgCurrency"><option ${systemConfig.currency==='NLe'?'selected':''}>NLe</option><option ${systemConfig.currency==='USD'?'selected':''}>USD</option></select></div><div class="field"><label>Disbursement Year</label><input id="cfgYear" value="${systemConfig.year}"></div></div><button class="btn" style="margin-top:12px" onclick="saveFinanceCfg()">Save Finance Settings</button>`;
+  w.innerHTML=`<h3>Finance configuration</h3><p class="small">Amounts stay in NLe. IHPAU sets the live USD rate on the IHPAU desk. The request prefix is used on the next new reference and does not rename existing records.</p>
+  <div class="formgrid"><div class="field"><label>Primary currency</label><input value="NLe" disabled></div><div class="field"><label for="cfgPrefix">Request number prefix</label><input id="cfgPrefix" value="${esc(systemConfig.requestPrefix)}" maxlength="12"></div><div class="field full"><label for="settingsNote">Reason</label><textarea id="settingsNote" placeholder="Why this prefix is being saved"></textarea></div></div>
+  <button class="btn" style="margin-top:12px" type="button" onclick="saveServerSettings('finance')">Save prefix on the server</button><p id="settingsState" class="small" role="status"></p>`;
+  loadServerSettings();
  } else if(type==='system'){
-  w.innerHTML=`<h3>System Settings</h3><div class="formgrid"><div class="field"><label>Request Number Prefix</label><input id="cfgPrefix" value="${esc(systemConfig.requestPrefix)}"></div><div class="field"><label>Administrative reason required</label><select id="cfgReason"><option value="true" ${systemConfig.requireReason?'selected':''}>Yes</option><option value="false" ${!systemConfig.requireReason?'selected':''}>No</option></select></div></div><button class="btn" style="margin-top:12px" onclick="saveSystemCfg()">Save System Settings</button>`;
+  w.innerHTML=`<h3>System settings</h3><p class="small">The prefix and reminder values below are stored on the server. Email delivery remains not configured.</p>
+  <div class="formgrid"><div class="field"><label for="cfgPrefix">Request number prefix</label><input id="cfgPrefix" value="${esc(systemConfig.requestPrefix)}" maxlength="12"></div><div class="field"><label for="remH">Reminder hours</label><input type="number" id="remH" min="1" max="168" value="${systemConfig.reminderHours}"></div><div class="field"><label for="maxR">Maximum reminders</label><input type="number" id="maxR" min="1" max="10" value="${systemConfig.maxReminders}"></div><div class="field full"><label for="settingsNote">Reason</label><textarea id="settingsNote" placeholder="Why this change is being saved"></textarea></div></div>
+  <button class="btn" style="margin-top:12px" type="button" onclick="saveServerSettings('system')">Save on the server</button><p id="settingsState" class="small" role="status"></p>`;
+  loadServerSettings();
  } else if(type==='records'){
   w.innerHTML=`<h3>Records & Legal Hold</h3><p class="small">Changes are written to the request, workflow history, and server audit log. A reason is always required.</p>
   <div class="formgrid"><div class="field"><label for="recordControlRef">Request reference or ID</label><input id="recordControlRef" placeholder="SRHR-2026-000012"></div>
@@ -914,23 +927,44 @@ function addStage(){let n=prompt('New workflow stage name:');if(!n)return;workfl
 async function interveneRequest(){
  const id=document.getElementById('adminReq').value.trim();
  const act=document.getElementById('adminReqAction').value;
- let r=(document.getElementById('adminReqNote')?.value||'').trim();
- if(!r&&typeof reasonFor==='function')r=reasonFor(act);
- if(!r){alert('A reason is required.');return}
- if(act==='Place legal hold'||act==='Release legal hold'){
-  const action=act==='Place legal hold'?'legal_hold':'release_legal_hold';
-  try{
-   const res=await fetch('/api/admin/records/'+encodeURIComponent(id)+'/control',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action,note:r})});
-   const data=await res.json().catch(()=>({}));
-   if(!res.ok)throw new Error(data.message||data.error||'Request failed');
-   audit('Request intervention',`${id}: ${act}. ${r}`);
-   alert(act==='Place legal hold'?'Legal hold applied on the server.':'Legal hold released on the server.');
-   return;
-  }catch(error){alert(error.message);return}
- }
- addAlert('Administrator',id,'Admin intervention',`${act}. Reason: ${r}`);
- audit('Request intervention',`${id}: ${act}. Reason: ${r}`);
- alert('Intervention noted locally. Workflow history on the server is unchanged for this action type.');
+ const r=(document.getElementById('adminReqNote')?.value||'').trim();
+ if(!id||!r){alert('A request reference and a reason are required.');return}
+ if(act!=='Place legal hold'&&act!=='Release legal hold'){alert('That action is not available. Use the desk that currently holds the request.');return}
+ const action=act==='Place legal hold'?'legal_hold':'release_legal_hold';
+ try{
+  const res=await fetch('/api/admin/records/'+encodeURIComponent(id)+'/control',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action,note:r})});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.message||data.error||'Request failed');
+  alert(act==='Place legal hold'?'Legal hold applied on the server.':'Legal hold released on the server.');
+ }catch(error){alert(error.message)}
+}
+async function loadServerSettings(){
+ try{
+  const data=await fetch('/api/admin/settings',{credentials:'same-origin'}).then(r=>r.json());
+  if(data.request_prefix)systemConfig.requestPrefix=data.request_prefix;
+  if(data.reminder_hours)systemConfig.reminderHours=data.reminder_hours;
+  if(data.max_reminders)systemConfig.maxReminders=data.max_reminders;
+  const prefix=document.getElementById('cfgPrefix');if(prefix&&data.request_prefix)prefix.value=data.request_prefix;
+  const hours=document.getElementById('remH');if(hours&&data.reminder_hours)hours.value=data.reminder_hours;
+  const max=document.getElementById('maxR');if(max&&data.max_reminders)max.value=data.max_reminders;
+ }catch{}
+}
+async function saveServerSettings(){
+ const state=document.getElementById('settingsState');
+ const note=document.getElementById('settingsNote')?.value.trim();
+ if(!note){alert('A reason is required.');return}
+ const body={note};
+ const prefix=document.getElementById('cfgPrefix');if(prefix)body.request_prefix=prefix.value.trim().toUpperCase();
+ const hours=document.getElementById('remH');if(hours)body.reminder_hours=Number(hours.value);
+ const max=document.getElementById('maxR');if(max)body.max_reminders=Number(max.value);
+ if(state)state.textContent='Saving…';
+ try{
+  const response=await fetch('/api/admin/settings',{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.message||data.error||'Save failed');
+  systemConfig.requestPrefix=data.request_prefix;systemConfig.reminderHours=data.reminder_hours;systemConfig.maxReminders=data.max_reminders;
+  if(state)state.textContent='Saved on the server. Email is still not configured, and existing reference numbers are unchanged.';
+ }catch(error){if(state)state.textContent=error.message}
 }
 function saveNotifRules(){systemConfig.reminderHours=+document.getElementById('remH').value;systemConfig.maxReminders=+document.getElementById('maxR').value;persistConfig();audit('Notification rules changed',`Escalation ${systemConfig.reminderHours}h; max reminders ${systemConfig.maxReminders}`);alert('Notification rules saved.')}
 function saveFinanceCfg(){systemConfig.currency=document.getElementById('cfgCurrency').value;systemConfig.year=document.getElementById('cfgYear').value;persistConfig();audit('Finance configuration changed',`${systemConfig.currency}; ${systemConfig.year}`);alert('Finance settings saved.')}
@@ -954,11 +988,23 @@ let srhrEntities=JSON.parse(localStorage.getItem('srhrEntities')||'null')||[
  {id:10,name:'COMAHS',short:'COMAHS',type:'Implementing Entity',active:true,focal:''},
  {id:11,name:'Post Graduate',short:'Post Graduate',type:'Programme',active:true,focal:''}
 ];
-function saveEntities(){localStorage.setItem('srhrEntities',JSON.stringify(srhrEntities));renderEntityManager();refreshEntitySelectors()}
+function mapServerEntity(e){return {id:e.id,name:e.name,short:e.acronym||'',type:e.type||'Implementing Entity',active:Number(e.active)!==0,focal:e.focal_person||''}}
+async function loadServerEntities(){
+ try{
+  let response=await fetch('/api/admin/entities',{credentials:'include'});
+  if(!response.ok)response=await fetch('/api/entities',{credentials:'include'});
+  const rows=await response.json();
+  if(Array.isArray(rows))srhrEntities=rows.map(mapServerEntity);
+ }catch{}
+ refreshEntitySelectors();
+}
+function saveEntities(){renderEntityManager()}
 function entityStatus(e){return e.active?'<span class="badge">Active</span>':'<span class="badge warn">Inactive</span>'}
-function renderEntityManager(){
+async function renderEntityManager(){
  const w=document.getElementById('adminWorkbench');if(!w)return;
- w.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3 style="margin-top:0">Directorates & Implementing Entities</h3><p class="small">Maintain the official list used across requests, reports, routing and user assignments. Records can be deactivated without deleting historical requests.</p></div><button class="btn" onclick="entityEditor()">+ Add Entity</button></div>
+ w.innerHTML='<p class="small">Loading entities from the server…</p>';
+ await loadServerEntities();
+ w.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><h3 style="margin-top:0">Directorates & Implementing Entities</h3><p class="small">This list is stored on the server. Deactivating an entity hides it from new requests and keeps historical records.</p></div><button class="btn" onclick="entityEditor()">+ Add Entity</button></div>
  <div style="overflow:auto"><table><thead><tr><th>Name</th><th>Short Name</th><th>Type</th><th>Designated Focal Person</th><th>Status</th><th>Control</th></tr></thead><tbody>
  ${srhrEntities.map(e=>`<tr><td><b>${esc(e.name)}</b></td><td>${esc(e.short)}</td><td>${esc(e.type)}</td><td>${esc(e.focal||'Not assigned')}</td><td>${entityStatus(e)}</td><td style="white-space:nowrap"><button class="btn secondary" onclick="entityEditor(${e.id})">Edit</button> <button class="btn secondary" onclick="toggleEntity(${e.id})">${e.active?'Deactivate':'Activate'}</button></td></tr>`).join('')}</tbody></table></div>`;
 }
@@ -972,17 +1018,22 @@ function entityEditor(id){
  <div class="field full"><label>Designated Focal Person</label><input id="entFocal" value="${esc(e.focal)}" placeholder="Name or assigned system user"></div></div>
  <div style="margin-top:14px"><button class="btn" onclick="saveEntity(${id||'null'})">Save Entity</button> <button class="btn secondary" onclick="renderEntityManager()">Cancel</button></div>`;
 }
-function saveEntity(id){
+async function saveEntity(id){
  const name=document.getElementById('entName').value.trim();if(!name){alert('Official name is required.');return}
- const data={name,short:document.getElementById('entShort').value.trim(),type:document.getElementById('entType').value,focal:document.getElementById('entFocal').value.trim()};
- if(id){let e=srhrEntities.find(x=>x.id===id);Object.assign(e,data);audit('Entity modified',`${name} (${data.short})`)}
- else{srhrEntities.push({id:Date.now(),...data,active:true});audit('Entity added',`${name} (${data.short})`)}
- saveEntities();alert('Entity saved.');renderEntityManager();
+ const note=reasonFor(id?'update this entity':'add this entity');if(!note)return;
+ const body={name,acronym:document.getElementById('entShort').value.trim(),type:document.getElementById('entType').value,focal_person:document.getElementById('entFocal').value.trim(),note};
+ const response=await fetch(id?`/api/admin/entities/${id}`:'/api/admin/entities',{method:id?'PATCH':'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){alert(data.message||data.error||'The entity was not saved.');return}
+ await renderEntityManager();
 }
-function toggleEntity(id){
- let e=srhrEntities.find(x=>x.id===id);if(!e)return;
- const action=e.active?'deactivate':'activate',r=reasonFor(`${action} ${e.name}`);if(!r)return;
- e.active=!e.active;audit(`Entity ${e.active?'activated':'deactivated'}`,`${e.name}. Reason: ${r}`);saveEntities();
+async function toggleEntity(id){
+ const e=srhrEntities.find(x=>Number(x.id)===Number(id));if(!e)return;
+ const action=e.active?'deactivate':'activate',note=reasonFor(`${action} ${e.name}`);if(!note)return;
+ const response=await fetch(`/api/admin/entities/${id}`,{method:'PATCH',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({name:e.name,acronym:e.short,type:e.type,focal_person:e.focal,active:!e.active,note})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){alert(data.message||data.error||'The entity was not updated.');return}
+ await renderEntityManager();
 }
 function refreshEntitySelectors(){
  const sels=[...document.querySelectorAll('select')].filter(s=>/implementing|directorate/i.test((s.previousElementSibling?.textContent||'')+' '+(s.id||'')));
@@ -1120,6 +1171,7 @@ function enterApp(a){
  applyRBAC();_showRBAC((rbac[uiRole]||DEFAULT_RBAC[uiRole]).home);
  startSharedRate();
  if(typeof loadDashboard==='function')loadDashboard();
+ if(typeof loadServerEntities==='function')loadServerEntities();
  if(a.mustChange||a.must_change)setTimeout(()=>changeOwnPassword(a.id,true),250);
 }
 

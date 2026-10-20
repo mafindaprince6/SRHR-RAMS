@@ -378,6 +378,13 @@ async function loadFinanceDesk(){
     const rows=data.receipts||[];
     box.innerHTML=rows.length?`<p><b>Receipts awaiting verification</b></p>${rows.map(row=>`<div class="card" style="min-height:auto;margin:8px 0"><b>${esc(row.request_number)}</b> · ${esc(row.reference_number)} · ${moneyText(row.amount)}<div style="margin-top:8px"><button class="btn" type="button" onclick="decideReceipt('${esc(row.id)}','Verified')">Verify</button> <button class="btn secondary" type="button" onclick="decideReceipt('${esc(row.id)}','Rejected')">Reject</button></div></div>`).join('')}`:'<p>No receipts are waiting for verification.</p>';
   }catch(error){box.textContent=error.message}
+  const deliverables=document.getElementById('deliverableQueue');
+  if(!deliverables)return;
+  try{
+    const data=await workflowApi('/api/finance/deliverables?status=Pending');
+    const rows=data.deliverables||[];
+    deliverables.innerHTML=rows.length?`<p><b>Deliverables awaiting verification</b></p>${rows.map(row=>`<div class="card" style="min-height:auto;margin:8px 0"><b>${esc(row.request_number)}</b> · ${esc(row.title)}${row.due_on?` · due ${esc(row.due_on)}`:''}<div style="margin-top:8px"><button class="btn" type="button" onclick="verifyDeliverable('${esc(row.id)}')">Mark verified</button></div></div>`).join('')}`:'<p>No deliverables are waiting for verification.</p>';
+  }catch(error){deliverables.textContent=error.message}
 }
 async function decideReceipt(id,decision){
   const note=decision==='Rejected'?prompt('Reason for rejecting this receipt:'):'';
@@ -389,6 +396,28 @@ async function decideReceipt(id,decision){
   }catch(error){alert(error.message)}
 }
 window.loadFinanceDesk=loadFinanceDesk;
+async function verifyDeliverable(id){
+  try{
+    await workflowApi('/api/deliverables/'+encodeURIComponent(id)+'/decision',{method:'POST',body:{decision:'Verified',note:'Checked by IHPAU'}});
+    await loadFinanceDesk();
+  }catch(error){alert(error.message)}
+}
+window.verifyDeliverable=verifyDeliverable;
+document.getElementById('deliverableForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const state=document.getElementById('deliverableState');
+  const reference=document.getElementById('deliverableRequest')?.value.trim();
+  const title=document.getElementById('deliverableTitle')?.value.trim();
+  const due=document.getElementById('deliverableDue')?.value;
+  if(!reference||!title){if(state)state.textContent='Enter the request reference and the deliverable.';return}
+  if(state)state.textContent='Saving…';
+  try{
+    await workflowApi('/api/requests/'+encodeURIComponent(reference)+'/deliverables',{method:'POST',body:{title,due_on:due||''}});
+    if(state)state.textContent='Deliverable recorded. Closure stays blocked until it is verified.';
+    document.getElementById('deliverableTitle').value='';
+    await loadFinanceDesk();
+  }catch(error){if(state)state.textContent=error.message}
+});
 if(document.getElementById('secureApp')?.style.display==='block'&&document.getElementById('dashboard')?.classList.contains('active')){
   loadDashboard();
 }

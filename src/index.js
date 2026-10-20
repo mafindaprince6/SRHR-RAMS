@@ -305,6 +305,14 @@ async function archiveReady(env){
   }catch{return false}
 }
 
+async function requestPrefix(env){
+  try{
+    const row=await env.DB.prepare('SELECT value FROM system_settings WHERE key=?').bind('request_prefix').first();
+    const prefix=String(row?.value||'SRHR').trim().toUpperCase();
+    if(/^[A-Z]{2,12}$/.test(prefix))return prefix;
+  }catch{/* settings table is part of the base schema */}
+  return 'SRHR';
+}
 async function allocateRequestNumber(env){
   const year=new Date().getUTCFullYear();
   const row=await env.DB.prepare(
@@ -312,7 +320,97 @@ async function allocateRequestNumber(env){
      ON CONFLICT(year) DO UPDATE SET last_seq=last_seq+1
      RETURNING last_seq`
   ).bind(year).first();
-  return `SRHR-${year}-${String(row.last_seq).padStart(6,'0')}`;
+  const prefix=await requestPrefix(env);
+  return `${prefix}-${year}-${String(row.last_seq).padStart(6,'0')}`;
+}
+
+const ENTITY_TYPES=new Set(['Directorate','Implementing Entity','Unit / Programme','Programme','Other']);
+async function entitiesFocalReady(env){
+  try{
+    await env.DB.prepare('SELECT focal_person FROM entities LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+async function saveEntityRecord(env,u,id,body){
+  const note=String(body.note||'').trim();
+  if(!note)return {error:'reason_required',message:'A written reason is required.',status:400};
+  const existing=id?await env.DB.prepare('SELECT * FROM entities WHERE id=?').bind(id).first():null;
+  if(id&&!existing)return {error:'not_found',message:'That entity was not found.',status:404};
+  const name=String(body.name??existing?.name??'').trim();
+  if(name.length<2||name.length>160)return {error:'invalid_name',message:'Enter the official name.',status:400};
+  const acronym=String(body.acronym??existing?.acronym??'').trim().slice(0,40);
+  const type=String(body.type??existing?.type??'Implementing Entity');
+  if(!ENTITY_TYPES.has(type))return {error:'invalid_type',message:'Choose a type from the approved list.',status:400};
+  const active=body.active==null?Number(existing?.active??1)!==0:!!body.active;
+  const focal=String(body.focal_person??existing?.focal_person??'').trim().slice(0,120);
+  const focalReady=await entitiesFocalReady(env);
+  try{
+    if(existing){
+      if(focalReady){
+        await env.DB.prepare('UPDATE entities SET name=?,acronym=?,type=?,active=?,focal_person=? WHERE id=?').bind(name,acronym,type,active?1:0,focal,id).run();
+      }else{
+        await env.DB.prepare('UPDATE entities SET name=?,acronym=?,type=?,active=? WHERE id=?').bind(name,acronym,type,active?1:0,id).run();
+      }
+    }else if(focalReady){
+      await env.DB.prepare('INSERT INTO entities(name,acronym,type,active,focal_person) VALUES(?,?,?,?,?)').bind(name,acronym,type,active?1:0,focal).run();
+    }else{
+      await env.DB.prepare('INSERT INTO entities(name,acronym,type,active) VALUES(?,?,?,?)').bind(name,acronym,type,active?1:0).run();
+    }
+  }catch{
+    return {error:'duplicate_entity',message:'An entity with that official name already exists.',status:409};
+  }
+  const row=await env.DB.prepare('SELECT * FROM entities WHERE name=?').bind(name).first();
+  await audit(env,u,existing?'ENTITY_UPDATED':'ENTITY_CREATED','',`${name}; ${active?'active':'inactive'}. ${note}`);
+  return {ok:true,entity:row};
+}
+async function readOperatorSettings(env){
+  const keys=['request_prefix','currency','reminder_hours','max_reminders'];
+  const values={};
+  for(const key of keys){
+    const row=await env.DB.prepare('SELECT value FROM system_settings WHERE key=?').bind(key).first();
+    values[key]=row?.value??'';
+  }
+  return {
+    request_prefix:values.request_prefix||'SRHR',
+    currency:'NLe',
+    reminder_hours:Number(values.reminder_hours||24),
+    max_reminders:Number(values.max_reminders||3),
+    email_delivery:'not_configured',
+    scheduled_reminders:false
+  };
+}
+async function writeOperatorSettings(env,u,body){
+  const note=String(body.note||'').trim();
+  if(!note)return {error:'reason_required',message:'A written reason is required.',status:400};
+  const updates=[];
+  if(body.request_prefix!=null){
+    const prefix=String(body.request_prefix).trim().toUpperCase();
+    if(!/^[A-Z]{2,12}$/.test(prefix))return {error:'invalid_prefix',message:'The request prefix must be 2 to 12 letters.',status:400};
+    updates.push(['request_prefix',prefix]);
+  }
+  if(body.reminder_hours!=null){
+    const hours=Number(body.reminder_hours);
+    if(!Number.isInteger(hours)||hours<1||hours>168)return {error:'invalid_reminder_hours',message:'Reminder hours must be a whole number from 1 to 168.',status:400};
+    updates.push(['reminder_hours',String(hours)]);
+  }
+  if(body.max_reminders!=null){
+    const count=Number(body.max_reminders);
+    if(!Number.isInteger(count)||count<1||count>10)return {error:'invalid_max_reminders',message:'Maximum reminders must be a whole number from 1 to 10.',status:400};
+    updates.push(['max_reminders',String(count)]);
+  }
+  if(!updates.length)return {error:'nothing_to_save',message:'Choose a prefix or reminder value to save.',status:400};
+  const now=new Date().toISOString();
+  for(const [key,value] of updates){
+    await env.DB.prepare(`INSERT INTO system_settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`).bind(key,value,now).run();
+  }
+  await audit(env,u,'SETTINGS_UPDATED','',`${updates.map(([key,value])=>`${key}=${value}`).join('; ')}. ${note}`);
+  return {ok:true,...await readOperatorSettings(env)};
+}
+async function deliverablesReady(env){
+  try{
+    await env.DB.prepare('SELECT id FROM deliverables LIMIT 1').first();
+    return true;
+  }catch{return false}
 }
 
 async function currentUsdRate(env){
@@ -1598,6 +1696,19 @@ export default {
       return J({receipts:results});
     }
 
+    if(p==='/api/finance/deliverables'&&req.method==='GET'){
+      if(!['IHPAU','Administrator'].includes(u.role))return J({error:'forbidden'},403);
+      if(!await deliverablesReady(env))return J({deliverables:[],migration_required:true});
+      const status=url.searchParams.get('status')||'Pending';
+      const {results}=await env.DB.prepare(
+        `SELECT d.id,d.request_id,d.title,d.due_on,d.status,d.evidence_note,q.request_number,q.title AS request_title
+         FROM deliverables d JOIN requests q ON q.id=d.request_id
+         WHERE d.status=? AND q.current_stage='IHPAU / Finance'
+         ORDER BY d.created_at ASC LIMIT 200`
+      ).bind(status).all();
+      return J({deliverables:results});
+    }
+
     /* =========================
        CHANGE PASSWORD
        ========================= */
@@ -1698,6 +1809,39 @@ export default {
         ).results
       );
 
+    }
+
+    if(p==='/api/admin/entities'&&req.method==='GET'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const {results}=await env.DB.prepare('SELECT * FROM entities ORDER BY name').all();
+      return J(results);
+    }
+    if(p==='/api/admin/entities'&&req.method==='POST'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const b=await req.json().catch(()=>({}));
+      const saved=await saveEntityRecord(env,u,null,b);
+      if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
+      return J(saved,201);
+    }
+    const entityPatch=p.match(/^\/api\/admin\/entities\/(\d+)$/);
+    if(entityPatch&&req.method==='PATCH'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const b=await req.json().catch(()=>({}));
+      const saved=await saveEntityRecord(env,u,Number(entityPatch[1]),b);
+      if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
+      return J(saved);
+    }
+
+    if(p==='/api/admin/settings'&&req.method==='GET'){
+      if(u.role!=='Administrator')return J({error:'forbidden'},403);
+      return J(await readOperatorSettings(env));
+    }
+    if(p==='/api/admin/settings'&&req.method==='PUT'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const b=await req.json().catch(()=>({}));
+      const saved=await writeOperatorSettings(env,u,b);
+      if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
+      return J(saved);
     }
 
 
@@ -2018,6 +2162,41 @@ export default {
       await env.DB.prepare('UPDATE receipts SET verification_status=?,comments=?,verified_at=? WHERE id=?').bind(decision,note||receipt.comments||'',decision==='Verified'?now:null,receipt.id).run();
       await audit(env,u,decision==='Verified'?'RECEIPT_VERIFIED':'RECEIPT_REJECTED',request.id,`${receipt.reference_number}; ${note}`);
       return J({ok:true,id:receipt.id,verification_status:decision,financials:await requestFinancials(env,request)});
+    }
+
+    const deliverableCreate=p.match(/^\/api\/requests\/([^/]+)\/deliverables$/);
+    if(deliverableCreate&&req.method==='POST'){
+      if(!['IHPAU','Administrator'].includes(u.role)||!(await hasPermission(env,u,'disburse_funds')))return J({error:'forbidden'},403);
+      if(!await deliverablesReady(env))return J({error:'migration_required',message:'Apply migrations/007_finance_phase3.sql first.'},503);
+      const request=await visibleRequest(env,u,decodeURIComponent(deliverableCreate[1]));
+      if(!request)return J({error:'not_found'},404);
+      if(request.current_stage!=='IHPAU / Finance')return J({error:'invalid_stage',message:'Deliverables are recorded once the request is with IHPAU.'},409);
+      const b=await req.json().catch(()=>({}));
+      const title=String(b.title||'').trim();
+      if(title.length<3||title.length>200)return J({error:'invalid_title',message:'Enter a deliverable title.'},400);
+      const due=String(b.due_on||'').trim();
+      if(due&&!/^\d{4}-\d{2}-\d{2}$/.test(due))return J({error:'invalid_due_on',message:'Use a due date in YYYY-MM-DD form.'},400);
+      const id=crypto.randomUUID();
+      const now=new Date().toISOString();
+      await env.DB.prepare('INSERT INTO deliverables(id,request_id,title,due_on,status,created_at) VALUES(?,?,?,?,?,?)').bind(id,request.id,title,due||null,'Pending',now).run();
+      await audit(env,u,'DELIVERABLE_RECORDED',request.id,`${title}${due?`; due ${due}`:''}`);
+      return J({ok:true,id,title,due_on:due||null,status:'Pending'},201);
+    }
+    const deliverableDecision=p.match(/^\/api\/deliverables\/([^/]+)\/decision$/);
+    if(deliverableDecision&&req.method==='POST'){
+      if(!['IHPAU','Administrator'].includes(u.role)||!(await hasPermission(env,u,'verify_receipts')))return J({error:'forbidden'},403);
+      if(!await deliverablesReady(env))return J({error:'migration_required',message:'Apply migrations/007_finance_phase3.sql first.'},503);
+      const row=await env.DB.prepare('SELECT * FROM deliverables WHERE id=?').bind(decodeURIComponent(deliverableDecision[1])).first();
+      if(!row)return J({error:'not_found'},404);
+      const request=await visibleRequest(env,u,row.request_id);
+      if(!request)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      if(b.decision!=='Verified')return J({error:'invalid_decision',message:'Use decision Verified.'},400);
+      const note=String(b.note||'').trim();
+      const now=new Date().toISOString();
+      await env.DB.prepare('UPDATE deliverables SET status=?,evidence_note=?,verified_by=?,verified_at=? WHERE id=?').bind('Verified',note,u.id,now,row.id).run();
+      await audit(env,u,'DELIVERABLE_VERIFIED',request.id,`${row.title}; ${note}`);
+      return J({ok:true,id:row.id,status:'Verified'});
     }
 
     const disbursementVoid=p.match(/^\/api\/requests\/([^/]+)\/disbursements\/([^/]+)\/void$/);
