@@ -17,7 +17,25 @@
  --accent:#0f3d7a;--accent-soft:#eaf2fb;--ring:#2b74e2
 }
 *{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;font:14px/1.55 "DM Sans",Segoe UI,sans-serif;background:var(--cream);color:var(--ink);min-height:100vh}
+body{margin:0;font:14px/1.55 "DM Sans",Segoe UI,sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;transition:background .25s ease}
+body[data-workspace="directorate"]{--forest:#0a3d4a;--forest2:#0f5c6b;--emerald:#0f766e;--hero-from:#08343d;--hero-mid:#0e5560;--hero-to:#0f766e;--side-from:#06262d;--side-mid:#0a3d4a;--side-to:#0f5c6b;--accent:#0f766e;--accent-soft:#e7f6f4;--gold:#2dd4bf;--cream:#f3faf8}
+body[data-workspace="secretary"]{--forest:#5c3b12;--forest2:#9a3412;--emerald:#c2410c;--hero-from:#3f2a12;--hero-mid:#7c2d12;--hero-to:#c2410c;--side-from:#2a1c0c;--side-mid:#4a3014;--side-to:#7c4a16;--accent:#9a3412;--accent-soft:#fff7ed;--gold:#f59e0b;--cream:#fbf6ef;--ring:#ea580c}
+body[data-workspace="chairman"]{--forest:#4c1d2a;--forest2:#7f1d1d;--emerald:#9f1239;--hero-from:#3b1020;--hero-mid:#6b1830;--hero-to:#9f1239;--side-from:#2a0d16;--side-mid:#4c1d2a;--side-to:#7f1d1d;--accent:#9f1239;--accent-soft:#fff1f2;--gold:#eab308;--cream:#fdf6f6;--ring:#be123c}
+body[data-workspace="ihpau"]{--forest:#14532d;--forest2:#166534;--emerald:#15803d;--hero-from:#052e16;--hero-mid:#14532d;--hero-to:#166534;--side-from:#052e16;--side-mid:#14532d;--side-to:#166534;--accent:#15803d;--accent-soft:#ecfdf3;--gold:#84cc16;--cream:#f3faf5;--ring:#16a34a}
+body[data-workspace="administrator"]{--forest:#1e293b;--forest2:#334155;--emerald:#475569;--hero-from:#0f172a;--hero-mid:#1e293b;--hero-to:#334155;--side-from:#0f172a;--side-mid:#1e293b;--side-to:#334155;--accent:#334155;--accent-soft:#f1f5f9;--gold:#94a3b8;--cream:#f8fafc;--ring:#64748b}
+.roleHero{background:linear-gradient(120deg,var(--hero-from) 0%,var(--hero-mid) 62%,var(--hero-to) 100%);border-radius:22px;padding:clamp(20px,3vw,30px);color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 46px rgba(11,46,94,.16)}
+.roleHero:before{content:"";position:absolute;right:-40px;top:-70px;width:220px;height:220px;border-radius:50%;border:1px solid rgba(255,255,255,.16);box-shadow:0 0 0 36px rgba(255,255,255,.04)}
+.roleKicker{position:relative;font-size:10px;letter-spacing:1.8px;font-weight:800;color:#e4edf5}
+.roleHero h2{position:relative;margin:8px 0 6px;color:#fff;font:800 clamp(22px,2.6vw,30px)/1.2 Manrope}
+.roleHero p{position:relative;margin:0;max-width:680px;color:#e7eef6}
+.roleHeroActions{position:relative;display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.roleHero .btn.light{background:#fff;color:var(--hero-from);box-shadow:none}
+.roleGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px}
+.roleStat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+.roleStat span{font-size:10px;letter-spacing:1.1px;font-weight:700;color:var(--muted)}
+.roleStat b{display:block;font:800 28px Manrope;letter-spacing:-.6px;margin-top:6px}
+.roleStat.accent{background:linear-gradient(135deg,var(--hero-from),var(--hero-to));color:#fff;border:0}
+.roleStat.accent span{color:#d7e4f2}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;background:
  radial-gradient(circle at 85% 5%,rgba(14,58,116,.07),transparent 28%),
  radial-gradient(circle at 10% 90%,rgba(22,75,145,.06),transparent 30%)}
@@ -317,19 +335,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <span id="title" style="display:none">Directorate Dashboard</span>
 
 <section id="dashboard" class="view active">
-<div class="hero">
-<div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
-<div style="max-width:700px;position:relative"><div class="kicker">MINISTRY OF HEALTH • SRHR PROJECT</div>
-<div id="dashHeroTitle" style="font:800 clamp(22px,2.6vw,29px)/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
-<div id="dashHeroSub" style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
-<div class="applicant-only" style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" onclick="show('new')"><svg class="ico"><use href="#i-plus"></use></svg> Create New Request</button></div>
-<div id="dashHeroIhpau" class="ihpau-dashboard-only" hidden style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" type="button" onclick="show('ihpau')"><svg class="ico"><use href="#i-briefcase"></use></svg> Open IHPAU Desk</button></div></div></div>
-<div class="cards"><div class="card" data-dash-card="total"><div class="label" id="dashLabelTotal">IN SCOPE</div><div class="metric" id="dashTotal">—</div></div><div class="card" data-dash-card="awaiting"><div class="label" id="dashLabelAwaiting">AWAITING APPROVAL</div><div class="metric" id="dashAwaiting">—</div></div><div class="card" data-dash-card="ihpau"><div class="label" id="dashLabelIhpau">AT IHPAU</div><div class="metric" id="dashIhpau">—</div></div><div class="card" data-dash-card="closed"><div class="label" id="dashLabelClosed">COMPLETED</div><div class="metric" id="dashClosed">—</div></div></div>
-<h2 class="applicant-only">Create a request</h2><div class="actions applicant-only">
-<div class="action" onclick="show('new');choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
-<div class="action" onclick="show('new');choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
-</div>
-<div class="panel"><h3 id="dashRecentTitle">Recent Requests</h3><div class="tableWrap"><table><thead><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead><tbody id="dashboardRecent"><tr><td colspan="5" class="small">Sign in to load live requests.</td></tr></tbody></table></div>
+<div id="roleDashboard"><p class="small">Sign in to open your workspace.</p></div>
 </section>
 
 <section id="new" class="view">
@@ -631,7 +637,7 @@ if(localStorage.getItem('srhrSidebarCollapsed')==='1'&&window.innerWidth>900){
  }
 }
 const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",archive:"Records Archive",reports:"Management Reports",register:"Automatic Register"};
-function dashboardTitle(){return currentRole()==='IHPAU'?'IHPAU Dashboard':titles.dashboard}
+function dashboardTitle(){return { 'Directorate User':'Directorate Dashboard','Project Secretary':'Secretary Dashboard','Chairman':'Chairman Dashboard','IHPAU':'IHPAU Dashboard','Administrator':'Administration Dashboard' }[currentRole()]||titles.dashboard}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=id==='dashboard'?dashboardTitle():titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 function choose(x){document.getElementById('start').classList.add('hide');document.getElementById('uploadbox').classList.toggle('hide',x!=='upload');document.getElementById('onlinebox').classList.toggle('hide',x!=='online')}
@@ -998,52 +1004,35 @@ const VIEW_LABELS={
 };
 const DEFAULT_RBAC={
  'Directorate User':{views:['dashboard','new','concept','requests','alerts','archive'],home:'dashboard',scope:'own_entity'},
- 'Project Secretary':{views:['dashboard','secretary','requests','alerts','register','archive','reports'],home:'secretary',scope:'all_requests'},
- 'Chairman':{views:['dashboard','approval','alerts','archive','reports'],home:'approval',scope:'approval_queue'},
+ 'Project Secretary':{views:['dashboard','secretary','alerts','register','archive','reports'],home:'dashboard',scope:'all_requests'},
+ 'Chairman':{views:['dashboard','approval','alerts','archive','reports'],home:'dashboard',scope:'approval_queue'},
  'IHPAU':{views:['dashboard','ihpau','alerts','register','archive','reports'],home:'dashboard',scope:'ihpau_queue'},
- 'Administrator':{views:Object.keys(VIEW_LABELS),home:'admin',scope:'all'}
+ 'Administrator':{views:['dashboard','secretary','approval','ihpau','admin','alerts','archive','reports','register'],home:'dashboard',scope:'all'}
 };
 const APPLICANT_VIEWS=new Set(['new','concept','requests']);
 function normalizeRoleRbac(role,def){
  if(!rbac[role]){rbac[role]=JSON.parse(JSON.stringify(def));return}
  const saved=rbac[role];
- if(role==='IHPAU'){
-  saved.views=[...(saved.views||[]).filter(v=>!APPLICANT_VIEWS.has(v)),...def.views.filter(v=>!(saved.views||[]).includes(v))];
-  if(!saved.views.includes(saved.home))saved.home=def.home;
-  saved.scope=def.scope;
-  return;
- }
- if(def.views.includes('archive')&&!(saved.views||[]).includes('archive'))saved.views.push('archive');
- else if(def.views.includes('reports')&&!(saved.views||[]).includes('reports'))saved.views.push('reports');
+ saved.views=[...(saved.views||[])];
+ if(role!=='Directorate User')saved.views=saved.views.filter(v=>!APPLICANT_VIEWS.has(v));
+ for(const view of def.views)if(!saved.views.includes(view))saved.views.push(view);
+ saved.views=saved.views.filter(v=>def.views.includes(v)||role==='Administrator'&&VIEW_LABELS[v]&&!APPLICANT_VIEWS.has(v));
+ if(!saved.views.includes('dashboard'))saved.views.unshift('dashboard');
+ saved.home='dashboard';
+ saved.scope=def.scope;
 }
 let rbac=JSON.parse(localStorage.getItem('srhrRBAC')||'null')||JSON.parse(JSON.stringify(DEFAULT_RBAC));
 for(const [role,def] of Object.entries(DEFAULT_RBAC))normalizeRoleRbac(role,def);
-function canCreateRequests(role){return role==='Directorate User'||role==='Administrator'}
-const DASHBOARD_COPY={
- default:{title:'Every request. One accountable journey.',sub:'Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.',recent:'Recent Requests',labels:{total:'IN SCOPE',awaiting:'AWAITING APPROVAL',ihpau:'AT IHPAU',closed:'COMPLETED'}},
- IHPAU:{title:'Finance & accountability overview',sub:'See approved requests in the IHPAU pipeline, track closures, and open IHPAU Desk to disburse funds, record receipts, and close requests.',recent:'Recent finance activity',labels:{total:'ACTIVE RECORDS',awaiting:'AWAITING CHAIRMAN',ihpau:'AT IHPAU DESK',closed:'CLOSED'}}
-};
-function applyDashboardCopy(role){
- const copy=role==='IHPAU'?DASHBOARD_COPY.IHPAU:DASHBOARD_COPY.default;
- const set=(id,text)=>{const el=document.getElementById(id);if(el)el.textContent=text};
- set('dashHeroTitle',copy.title);set('dashHeroSub',copy.sub);set('dashRecentTitle',copy.recent);
- set('dashLabelTotal',copy.labels.total);set('dashLabelAwaiting',copy.labels.awaiting);
- set('dashLabelIhpau',copy.labels.ihpau);set('dashLabelClosed',copy.labels.closed);
- const ihpauHero=document.getElementById('dashHeroIhpau');if(ihpauHero)ihpauHero.hidden=role!=='IHPAU';
- const cards=document.querySelector('#dashboard .cards');
- if(cards){
-  const order=role==='IHPAU'?{ihpau:1,total:2,awaiting:3,closed:4}:{total:1,awaiting:2,ihpau:3,closed:4};
-  cards.querySelectorAll('[data-dash-card]').forEach(el=>{el.style.order=order[el.dataset.dashCard]||0});
- }
-}
+function canCreateRequests(role){return role==='Directorate User'}
+const WORKSPACE_KEYS={'Directorate User':'directorate','Project Secretary':'secretary','Chairman':'chairman','IHPAU':'ihpau','Administrator':'administrator'};
 function saveRBAC(){localStorage.setItem('srhrRBAC',JSON.stringify(rbac));applyRBAC();audit('Interface permissions updated','Role-based menu/dashboard configuration changed.')}
 function currentRole(){return document.getElementById('role')?.value||'Directorate User'}
 function allowedViews(role){return (rbac[role]||DEFAULT_RBAC[role]||{views:[]}).views}
 function applyRBAC(){
  const role=currentRole(),allowed=allowedViews(role);
+ document.body.dataset.workspace=WORKSPACE_KEYS[role]||'directorate';
  document.querySelectorAll('.nav button[data-v]').forEach(b=>{b.style.display=allowed.includes(b.dataset.v)?'flex':'none'});
  document.querySelectorAll('.applicant-only').forEach(el=>{el.hidden=!canCreateRequests(role)});
- applyDashboardCopy(role);
  document.querySelectorAll('.view').forEach(v=>{if(!allowed.includes(v.id)&&v.classList.contains('active'))v.classList.remove('active')});
  const active=document.querySelector('.view.active');
  if(!active||!allowed.includes(active.id)){show((rbac[role]||DEFAULT_RBAC[role]).home)}
@@ -1094,6 +1083,7 @@ if(roleSelect){
  roleSelect.addEventListener('change',e=>{
    const role=e.target.value, cfg=rbac[role]||DEFAULT_RBAC[role];
    applyRBAC(); _showRBAC(cfg.home);
+   if(cfg.home==='dashboard'&&typeof loadDashboard==='function')loadDashboard();
  });
 }
 applyRBAC();
@@ -1217,6 +1207,12 @@ document.getElementById('loginPass')?.addEventListener('keydown',e=>{if(e.key===
  }catch{}
 })();
 </script>
+<script src="/roles/common.js"></script>
+<script src="/roles/directorate.js"></script>
+<script src="/roles/secretary.js"></script>
+<script src="/roles/chairman.js"></script>
+<script src="/roles/ihpau.js"></script>
+<script src="/roles/administrator.js"></script>
 <script src="/archive.js"></script>
 <script src="/reports.js"></script>
 <script src="/workflow.js"></script>

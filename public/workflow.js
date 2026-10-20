@@ -22,20 +22,12 @@ function dashboardStatusBadge(row){
   return `<span class="badge">${esc(s)}</span>`;
 }
 async function loadDashboard(){
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v??'—')};
-  const body=document.getElementById('dashboardRecent');
-  if(!body)return;
-  try{
-    const data=await workflowApi('/api/dashboard');
-    set('dashTotal',data.total??0);
-    set('dashAwaiting',data.awaiting_approval??0);
-    set('dashIhpau',data.at_ihpau??0);
-    set('dashClosed',data.closed??0);
-    const rows=data.recent||[];
-    body.innerHTML=rows.length?rows.map(row=>`<tr><td>${esc(row.request_number)}</td><td>${esc(row.request_type)}</td><td>${esc(row.title)}</td><td>${moneyText(row.amount_nle)}</td><td>${dashboardStatusBadge(row)}</td></tr>`).join(''):'<tr><td colspan="5" class="small">No requests in your scope yet.</td></tr>';
-  }catch(error){
-    body.innerHTML=`<tr><td colspan="5" class="small">${esc(error.message)}</td></tr>`;
-  }
+  const role=document.getElementById('role')?.value||'Directorate User';
+  const paint=window.RoleBoards&&window.RoleBoards[role];
+  const root=document.getElementById('roleDashboard');
+  if(!paint||!root)return;
+  try{await paint(root)}
+  catch(error){root.innerHTML=`<p class="small">${esc(error.message)}</p>`}
 }
 function queueWaitLabel(row){
   const h=row.waiting_hours;

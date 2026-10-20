@@ -158,7 +158,15 @@ test('IHPAU workspace has finance dashboard without request submission menus',as
     assert.doesNotMatch(block[1],new RegExp(`['"]${view}['"]`),`IHPAU must not include ${view}`);
   }
   assert.equal(block[2],'dashboard');
-  assert.match(html,/id="dashHeroIhpau"/);
+  const ihpau=await readFile(new URL('../public/roles/ihpau.js',import.meta.url),'utf8');
+  const directorate=await readFile(new URL('../public/roles/directorate.js',import.meta.url),'utf8');
+  const secretary=await readFile(new URL('../public/roles/secretary.js',import.meta.url),'utf8');
+  assert.match(ihpau,/id="dashHeroIhpau"/);
+  assert.match(directorate,/show\('new'\)/);
+  assert.match(directorate,/show\('concept'\)/);
+  assert.doesNotMatch(secretary,/show\('new'\)|show\('concept'\)/);
+  assert.match(html,/id="roleDashboard"/);
+  assert.doesNotMatch(html,/id="dashHeroTitle"|class="applicant-only"/);
 });
 
 test('archive screen is present for every role and does not restore the theme switcher',async()=>{
