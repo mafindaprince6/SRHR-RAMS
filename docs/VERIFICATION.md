@@ -7,7 +7,7 @@ Use this after migrations and before or immediately after a production deploy.
 | Check | Command | Expected |
 |--------|---------|----------|
 | Worker syntax | `node --check src/index.js` | Exit 0 |
-| Test suite | `node --test tests/*.test.mjs` | 37 pass, 0 fail |
+| Test suite | `node --test tests/*.test.mjs` | 40 pass, 0 fail |
 
 ## Migrations (existing D1)
 
@@ -42,6 +42,6 @@ On push to `main` or `maliaka`, GitHub Actions runs `node --check src/index.js` 
 ## Known limitations
 
 - Excel/PDF concept-note extraction remains stubbed in the UI.
-- Some admin console panels (workflow designer, permission matrix) still use localStorage prototypes; legal hold, record control, audit, desks, and archive use the live API.
+- The workflow desks are fixed. Legal hold, entities, the request prefix, reminder values, deliverables, record control, audit, and archive use the live API. Menu checkboxes only hide screens in this browser. Email, SMS, and WhatsApp are not configured, and reminder hours are stored only.
 - Document storage requires R2 binding `DOCUMENTS` (not in default `wrangler.jsonc`).
 - Retention years in `retention_policies` are catalogue defaults until the Ministry publishes official schedules.

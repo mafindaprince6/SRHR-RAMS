@@ -1165,23 +1165,95 @@ async function buildManagementReport(env,u,url){
       SUM(CASE WHEN status='Awaiting Approval' AND current_stage='Chairman' THEN 1 ELSE 0 END) AS chairman,
       SUM(CASE WHEN current_stage='IHPAU / Finance' AND status!='Closed' THEN 1 ELSE 0 END) AS ihpau
     FROM requests WHERE ${clause}`).bind(...args).first();
+  const byYear=await env.DB.prepare(`
+    SELECT COALESCE(fiscal_year,'') AS fiscal_year,COUNT(*) AS count,COALESCE(SUM(amount_nle),0) AS requested,COALESCE(SUM(approved_amount_nle),0) AS approved
+    FROM requests WHERE ${clause} GROUP BY fiscal_year ORDER BY fiscal_year DESC`).bind(...args).all();
+  const turnaround=await env.DB.prepare(`
+    SELECT COUNT(*) AS decided, AVG(julianday(approved_at)-julianday(submitted_at)) AS average_days
+    FROM requests WHERE ${clause} AND submitted_at IS NOT NULL AND approved_at IS NOT NULL`).bind(...args).first();
+  const missingDocuments=await env.DB.prepare(`
+    SELECT COUNT(*) AS count FROM requests
+    WHERE ${clause} AND submitted_at IS NOT NULL AND status NOT IN ('Withdrawn','Rejected')
+    AND NOT EXISTS (SELECT 1 FROM documents d WHERE d.request_id=requests.id)`).bind(...args).first();
+  let archived=0;
+  try{
+    const archivedRow=await env.DB.prepare(`SELECT SUM(CASE WHEN archival_status='archived' THEN 1 ELSE 0 END) AS archived FROM requests WHERE ${clause}`).bind(...args).first();
+    archived=Number(archivedRow?.archived||0);
+  }catch{archived=0}
+  const inScope=`request_id IN (SELECT id FROM requests WHERE ${clause})`;
+  let execution={approved:money2(summary?.approved||0),disbursed:0,verified_receipts:0,outstanding_disbursement:{count:0,amount:0},outstanding_liquidation:{count:0,amount:0}};
+  if(await financeReady(env)){
+    const disbursedRow=await env.DB.prepare(`SELECT COALESCE(SUM(amount_nle),0) AS total FROM disbursements WHERE voided_at IS NULL AND ${inScope}`).bind(...args).first();
+    const verifiedRow=await env.DB.prepare(`SELECT COALESCE(SUM(amount),0) AS total FROM receipts WHERE verification_status='Verified' AND ${inScope}`).bind(...args).first();
+    const gaps=await env.DB.prepare(`
+      SELECT
+        SUM(CASE WHEN disburse_gap>0.001 THEN 1 ELSE 0 END) AS disburse_count,
+        COALESCE(SUM(CASE WHEN disburse_gap>0.001 THEN disburse_gap ELSE 0 END),0) AS disburse_amount,
+        SUM(CASE WHEN liquid_gap>0.001 OR pending_receipts>0 THEN 1 ELSE 0 END) AS liquid_count,
+        COALESCE(SUM(CASE WHEN liquid_gap>0.001 THEN liquid_gap ELSE 0 END),0) AS liquid_amount
+      FROM (
+        SELECT
+          COALESCE(r.approved_amount_nle,0)-COALESCE((SELECT SUM(d.amount_nle) FROM disbursements d WHERE d.request_id=r.id AND d.voided_at IS NULL),0) AS disburse_gap,
+          COALESCE((SELECT SUM(d.amount_nle) FROM disbursements d WHERE d.request_id=r.id AND d.voided_at IS NULL),0)-COALESCE((SELECT SUM(rc.amount) FROM receipts rc WHERE rc.request_id=r.id AND rc.verification_status='Verified'),0) AS liquid_gap,
+          (SELECT COUNT(*) FROM receipts rc WHERE rc.request_id=r.id AND IFNULL(rc.verification_status,'Pending')='Pending') AS pending_receipts
+        FROM requests r
+        WHERE r.id IN (SELECT id FROM requests WHERE ${clause})
+          AND r.approved_amount_nle IS NOT NULL
+          AND r.status NOT IN ('Draft','Withdrawn','Rejected','Closed')
+      )`).bind(...args).first();
+    execution={
+      approved:money2(summary?.approved||0),
+      disbursed:money2(disbursedRow?.total||0),
+      verified_receipts:money2(verifiedRow?.total||0),
+      outstanding_disbursement:{count:Number(gaps?.disburse_count||0),amount:money2(gaps?.disburse_amount||0)},
+      outstanding_liquidation:{count:Number(gaps?.liquid_count||0),amount:money2(gaps?.liquid_amount||0)}
+    };
+  }
+  let deliverables={recorded:0,verified:0,pending:0};
+  if(await deliverablesReady(env)){
+    const row=await env.DB.prepare(`
+      SELECT COUNT(*) AS recorded,
+        SUM(CASE WHEN status='Verified' THEN 1 ELSE 0 END) AS verified,
+        SUM(CASE WHEN status!='Verified' THEN 1 ELSE 0 END) AS pending
+      FROM deliverables WHERE ${inScope}`).bind(...args).first();
+    deliverables={recorded:Number(row?.recorded||0),verified:Number(row?.verified||0),pending:Number(row?.pending||0)};
+  }
+  const averageDays=turnaround?.average_days==null?null:Math.round(Number(turnaround.average_days)*10)/10;
   return {
     generated_at:new Date().toISOString(),
     filters:{fiscal_year:fiscal||null},
-    summary:{...summary,secretary_queue:Number(backlog?.secretary||0),chairman_queue:Number(backlog?.chairman||0),ihpau_queue:Number(backlog?.ihpau||0)},
+    document_storage:!!env.DOCUMENTS,
+    summary:{
+      ...summary,
+      archived,
+      secretary_queue:Number(backlog?.secretary||0),
+      chairman_queue:Number(backlog?.chairman||0),
+      ihpau_queue:Number(backlog?.ihpau||0),
+      missing_documents:Number(missingDocuments?.count||0)
+    },
     by_status:byStatus.results,
     by_entity:byEntity.results,
+    by_year:byYear.results,
+    approval_turnaround:{decided:Number(turnaround?.decided||0),average_days:averageDays},
+    execution,
+    deliverables,
     retention_review:retentionReview.results
   };
 }
 async function exportManagementCsv(env,u,url){
-  const header=['request_number','title','implementing_entity','status','amount_nle','approved_amount_nle','fiscal_year','legal_hold','retention_until','archival_status'];
+  const header=['request_number','title','implementing_entity','status','amount_nle','approved_amount_nle','disbursed_nle','verified_receipts_nle','pending_deliverables','fiscal_year','legal_hold','retention_until','archival_status'];
   const scope=reportScope(u);
   const where=[scope.sql];
   const args=[...scope.args];
   const fiscal=url.searchParams.get('fiscal_year');
   if(fiscal){where.push('fiscal_year=?');args.push(fiscal)}
-  const rows=await env.DB.prepare(`SELECT request_number,title,implementing_entity,status,amount_nle,approved_amount_nle,fiscal_year,legal_hold,retention_until,archival_status FROM requests WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT 5000`).bind(...args).all();
+  const clause=where.join(' AND ');
+  const finance=await financeReady(env);
+  const deliverables=await deliverablesReady(env);
+  const disbursedSql=finance?`(SELECT COALESCE(SUM(amount_nle),0) FROM disbursements d WHERE d.request_id=requests.id AND d.voided_at IS NULL)`:'0';
+  const verifiedSql=`(SELECT COALESCE(SUM(amount),0) FROM receipts rc WHERE rc.request_id=requests.id AND rc.verification_status='Verified')`;
+  const pendingSql=deliverables?`(SELECT COUNT(*) FROM deliverables dv WHERE dv.request_id=requests.id AND dv.status!='Verified')`:'0';
+  const rows=await env.DB.prepare(`SELECT request_number,title,implementing_entity,status,amount_nle,approved_amount_nle,${disbursedSql} AS disbursed_nle,${verifiedSql} AS verified_receipts_nle,${pendingSql} AS pending_deliverables,fiscal_year,legal_hold,retention_until,archival_status FROM requests WHERE ${clause} ORDER BY created_at DESC LIMIT 5000`).bind(...args).all();
   const csv=[header.join(','),...rows.results.map(row=>header.map(key=>csvCell(row[key])).join(','))].join('\n');
   return new Response(csv,{headers:{'content-type':'text/csv; charset=utf-8','content-disposition':'attachment; filename="srhr-management-report.csv"','cache-control':'no-store'}});
 }
