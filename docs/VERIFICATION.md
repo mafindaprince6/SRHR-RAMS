@@ -7,7 +7,7 @@ Use this after migrations and before or immediately after a production deploy.
 | Check | Command | Expected |
 |--------|---------|----------|
 | Worker syntax | `node --check src/index.js` | Exit 0 |
-| Test suite | `node --test tests/*.test.mjs` | 33 pass, 0 fail |
+| Test suite | `node --test tests/*.test.mjs` | 35 pass, 0 fail |
 
 ## Migrations (existing D1)
 

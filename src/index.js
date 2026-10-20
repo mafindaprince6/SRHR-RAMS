@@ -413,15 +413,27 @@ async function queueCountsForUser(env,u){
   return counts;
 }
 
-function archiveWhere(url,u){
+async function extractsReady(env){
+  try{
+    await env.DB.prepare('SELECT id FROM document_extracts LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+
+async function archiveWhere(url,u,env){
   const scope=archiveScope(u);
   const where=[scope.sql];
   const args=[...scope.args];
   const q=(url.searchParams.get('q')||'').trim();
   if(q){
     const term=likeTerm(q);
-    where.push("(request_number LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR IFNULL(details,'') LIKE ? ESCAPE '\\' OR IFNULL(objective,'') LIKE ? ESCAPE '\\' OR IFNULL(activity_code,'') LIKE ? ESCAPE '\\')");
+    let clause="(request_number LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR IFNULL(details,'') LIKE ? ESCAPE '\\' OR IFNULL(objective,'') LIKE ? ESCAPE '\\' OR IFNULL(activity_code,'') LIKE ? ESCAPE '\\'";
     args.push(term,term,term,term,term);
+    if(env&&await extractsReady(env)){
+      clause+=` OR id IN (SELECT request_id FROM document_extracts WHERE extracted_text LIKE ? ESCAPE '\\')`;
+      args.push(term);
+    }
+    where.push(clause+')');
   }
   for(const [param,column] of [['entity','implementing_entity'],['category','request_type'],['fiscal_year','fiscal_year'],['status','status'],['funding_source','funding_source'],['archival_status','archival_status']]){
     const value=url.searchParams.get(param);
@@ -716,7 +728,7 @@ async function handleArchive(req,env,u,p,url){
   if(documentPost&&req.method!=='POST')return J({error:'method_not_allowed'},405);
 
   if(archiveList||archiveExport){
-    const filters=archiveWhere(url,u);
+    const filters=await archiveWhere(url,u,env);
     if(filters.error)return J({error:filters.error},400);
     const sort=ARCHIVE_SORTS[url.searchParams.get('sort')]||'created_at';
     const dir=url.searchParams.get('dir')==='asc'?'ASC':'DESC';
@@ -2539,6 +2551,69 @@ export default {
 
     }
 
+
+    const extractPost=p.match(/^\/api\/documents\/([^/]+)\/extract$/);
+    if(extractPost&&req.method==='POST'){
+      if(!await extractsReady(env))return J({error:'migration_required',message:'Apply migrations/009_archive_advanced.sql first.'},503);
+      const scope=archiveScope(u);
+      const doc=await env.DB.prepare(`SELECT d.id,d.request_id FROM documents d JOIN requests r ON r.id=d.request_id WHERE d.id=? AND ${scope.sql}`).bind(decodeURIComponent(extractPost[1]),...scope.args).first();
+      if(!doc)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      const text=String(b.text||'').trim();
+      if(text.length<3||text.length>20000)return J({error:'invalid_text',message:'Enter between 3 and 20,000 characters of extracted text.'},400);
+      const id=crypto.randomUUID();
+      const now=new Date().toISOString();
+      await env.DB.prepare('INSERT INTO document_extracts(id,document_id,request_id,extracted_text,source,verified,created_by,created_at) VALUES(?,?,?,?,?,0,?,?)').bind(id,doc.id,doc.request_id,text,String(b.source||'manual').slice(0,80),u.id,now).run();
+      await audit(env,u,'DOCUMENT_TEXT_INDEXED',doc.request_id,`${doc.id}; unverified extract`);
+      return J({ok:true,id,verified:false,message:'Stored as unverified text. It is searchable and is not financial evidence.'},201);
+    }
+
+    if(p==='/api/admin/documents/duplicates'&&req.method==='GET'){
+      if(u.role!=='Administrator')return J({error:'forbidden'},403);
+      const {results}=await env.DB.prepare(`
+        SELECT checksum_sha256, COUNT(*) AS copies, GROUP_CONCAT(request_id) AS request_ids
+        FROM documents
+        WHERE checksum_sha256 IS NOT NULL AND superseded_at IS NULL
+        GROUP BY checksum_sha256
+        HAVING COUNT(*)>1
+        LIMIT 100
+      `).all();
+      return J({duplicates:results});
+    }
+
+    if(p==='/api/admin/legacy-import'&&req.method==='POST'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const b=await req.json().catch(()=>({}));
+      const records=Array.isArray(b.records)?b.records.slice(0,25):[];
+      if(!records.length)return J({error:'records_required',message:'Provide up to 25 legacy records.'},400);
+      const key=String(b.idempotency_key||'').trim();
+      if(key){
+        try{
+          const prior=await env.DB.prepare('SELECT request_id FROM legacy_import_keys WHERE user_id=? AND key=?').bind(u.id,key).first();
+          if(prior)return J({ok:true,idempotent:true,request_id:prior.request_id});
+        }catch{return J({error:'migration_required',message:'Apply migrations/009_archive_advanced.sql first.'},503)}
+      }
+      const created=[];
+      const now=new Date().toISOString();
+      for(const row of records){
+        const title=String(row.title||'').trim();
+        const entity=String(row.implementing_entity||'').trim();
+        if(!title||!entity)return J({error:'invalid_record',message:'Each legacy record needs a title and implementing entity.',created},400);
+        const id=crypto.randomUUID();
+        const saved=await persistNewRequest(env,u,{
+          title,implementing_entity:entity,amount_nle:Number(row.amount_nle||0),status:'Draft',
+          details:String(row.details||'Imported legacy record. Confirm before treating it as a live request.'),
+          request_type:row.request_type==='Procurement'?'Procurement':'Operational'
+        },id,now);
+        if(saved.error)return J({error:saved.error,created},saved.status||400);
+        created.push({id,request_number:saved.num});
+      }
+      if(key&&created[0]){
+        await env.DB.prepare('INSERT INTO legacy_import_keys(user_id,key,request_id,created_at) VALUES(?,?,?,?)').bind(u.id,key,created[0].id,now).run();
+      }
+      await audit(env,u,'LEGACY_IMPORT','',`${created.length} draft records`);
+      return J({ok:true,created},201);
+    }
 
     const archiveResponse=await handleArchive(req,env,u,p,url);
     if(archiveResponse)return archiveResponse;

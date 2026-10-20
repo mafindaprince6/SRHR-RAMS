@@ -12,5 +12,6 @@ call npx.cmd wrangler d1 execute srhr-rams-db %FLAG% --file=migrations/005_queue
 call npx.cmd wrangler d1 execute srhr-rams-db %FLAG% --file=migrations/006_paperless.sql
 call npx.cmd wrangler d1 execute srhr-rams-db %FLAG% --file=migrations/007_finance_phase3.sql
 call npx.cmd wrangler d1 execute srhr-rams-db %FLAG% --file=migrations/008_admin.sql
+call npx.cmd wrangler d1 execute srhr-rams-db %FLAG% --file=migrations/009_archive_advanced.sql
 echo Done. If a step failed with duplicate column/table, that migration was likely already applied.
 endlocal
