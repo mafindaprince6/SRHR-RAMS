@@ -332,6 +332,87 @@ function archiveScope(u){
   return {sql:"status!='Draft'",args:[]};
 }
 
+const QUEUE_DESKS=new Set(['secretary','chairman','ihpau','directorate']);
+const QUEUE_LIST_COLUMNS='id,request_number,title,request_type,implementing_entity,amount_nle,status,current_stage,submitted_at,updated_at,created_at';
+
+function queueAccess(u,desk){
+  if(!QUEUE_DESKS.has(desk))return false;
+  if(u.role==='Administrator')return true;
+  const roleByDesk={
+    secretary:'Project Secretary',
+    chairman:'Chairman',
+    ihpau:'IHPAU',
+    directorate:'Directorate User'
+  };
+  return roleByDesk[desk]===u.role;
+}
+
+function queueFilter(desk,u){
+  const scope=archiveScope(u);
+  const where=[scope.sql];
+  const args=[...scope.args];
+  if(desk==='secretary'){
+    where.push('status=?','current_stage=?');
+    args.push('Submitted','Project Secretary');
+  }else if(desk==='chairman'){
+    where.push('status=?','current_stage=?');
+    args.push('Awaiting Approval','Chairman');
+  }else if(desk==='ihpau'){
+    where.push('current_stage=?','status!=?');
+    args.push('IHPAU / Finance','Closed');
+  }else if(desk!=='directorate'){
+    return null;
+  }
+  return {where:where.join(' AND '),args};
+}
+
+function queueWaitingHours(iso){
+  if(!iso)return null;
+  const ms=Date.now()-Date.parse(iso);
+  if(Number.isNaN(ms)||ms<0)return 0;
+  return Math.floor(ms/3600000);
+}
+
+async function fetchQueueRecords(env,u,desk,limit=200){
+  const filter=queueFilter(desk,u);
+  if(!filter)return null;
+  let st=env.DB.prepare(
+    `SELECT ${QUEUE_LIST_COLUMNS} FROM requests WHERE ${filter.where} ORDER BY COALESCE(submitted_at,updated_at) ASC LIMIT ?`
+  );
+  st=st.bind(...filter.args,limit);
+  const {results}=await st.all();
+  return results.map(row=>({
+    ...row,
+    waiting_hours:queueWaitingHours(row.submitted_at||row.updated_at),
+    needs_action:desk==='directorate'&&(row.status==='Draft'||(row.status==='Query Raised'&&row.current_stage==='Directorate'))
+  }));
+}
+
+async function countQueue(env,u,desk){
+  const filter=queueFilter(desk,u);
+  if(!filter)return 0;
+  let st=env.DB.prepare(`SELECT COUNT(*) AS n FROM requests WHERE ${filter.where}`);
+  if(filter.args.length)st=st.bind(...filter.args);
+  return Number((await st.first())?.n||0);
+}
+
+async function queueCountsForUser(env,u){
+  const counts={};
+  for(const desk of QUEUE_DESKS){
+    if(!queueAccess(u,desk))continue;
+    counts[desk]=await countQueue(env,u,desk);
+  }
+  if(u.role==='Directorate User'||u.role==='Administrator'){
+    const scope=archiveScope(u);
+    let st=env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM requests WHERE ${scope.sql} AND ((status='Query Raised' AND current_stage='Directorate') OR status='Draft')`
+    );
+    if(scope.args.length)st=st.bind(...scope.args);
+    counts.directorate_action=Number((await st.first())?.n||0);
+  }
+  return counts;
+}
+
 function archiveWhere(url,u){
   const scope=archiveScope(u);
   const where=[scope.sql];
@@ -382,6 +463,209 @@ async function saveBudgetAndConcept(env,id,b,now){
   const concept=b.concept_note;
   if(!concept||typeof concept!=='object')return;
   await env.DB.prepare(`INSERT INTO concept_notes(id,request_id,background,problem_statement,goal,specific_objectives,methodology,target_participants,expected_outputs,expected_outcomes,implementation_arrangements,monitoring,risks,conclusion,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,concept.background||'',concept.problem_statement||'',concept.goal||'',concept.specific_objectives||'',concept.methodology||'',concept.target_participants||'',concept.expected_outputs||'',concept.expected_outcomes||'',concept.implementation_arrangements||'',concept.monitoring||'',concept.risks||'',concept.conclusion||'',now,now).run();
+}
+
+const DEFAULT_SUBMISSION_REQUIREMENTS={
+  min_details_length:10,
+  min_budget_lines:1,
+  min_budget_total:0.01,
+  require_concept_note:true,
+  concept_min_fields:['background','goal'],
+  require_deliverable:true,
+  require_timeline:true,
+  require_activity_code:false,
+  require_funding_source:false,
+  enforce_on_direct_submit:false
+};
+
+async function submissionRequirements(env){
+  const row=await env.DB.prepare('SELECT value FROM system_settings WHERE key=?').bind('submission_requirements').first();
+  if(!row)return {...DEFAULT_SUBMISSION_REQUIREMENTS};
+  try{return {...DEFAULT_SUBMISSION_REQUIREMENTS,...JSON.parse(row.value)};}catch{return {...DEFAULT_SUBMISSION_REQUIREMENTS};}
+}
+
+async function documentsInlineReady(env){
+  try{
+    await env.DB.prepare('SELECT inline_body FROM documents LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+
+async function replaceBudgetLines(env,requestId,lines,now){
+  await env.DB.prepare('DELETE FROM budget_lines WHERE request_id=?').bind(requestId).run();
+  if(Array.isArray(lines)&&lines.length){
+    await saveBudgetAndConcept(env,requestId,{budget_lines:lines},now);
+  }
+}
+
+async function replaceConceptNote(env,requestId,concept,now){
+  if(!concept||typeof concept!=='object')return;
+  const fields=['background','problem_statement','goal','specific_objectives','methodology','target_participants','expected_outputs','expected_outcomes','implementation_arrangements','monitoring','risks','conclusion'];
+  const values=fields.map(f=>concept[f]||'');
+  const existing=await env.DB.prepare('SELECT id FROM concept_notes WHERE request_id=?').bind(requestId).first();
+  if(existing){
+    await env.DB.prepare(`UPDATE concept_notes SET ${fields.map(f=>`${f}=?`).join(',')},updated_at=? WHERE request_id=?`).bind(...values,now,requestId).run();
+  }else{
+    await env.DB.prepare(`INSERT INTO concept_notes(id,request_id,${fields.join(',')},created_at,updated_at) VALUES(?,?,${fields.map(()=>'?').join(',')},?,?)`).bind(crypto.randomUUID(),requestId,...values,now,now).run();
+  }
+}
+
+async function assessSubmissionReadiness(env,request){
+  const rules=await submissionRequirements(env);
+  const items=[];
+  const add=(key,label,ok,message)=>items.push({key,label,ok,message:message||(ok?'Complete':'Missing or incomplete')});
+  add('title','Request title',!!String(request.title||'').trim());
+  const details=String(request.details||'').trim();
+  add('details','Purpose / justification',details.length>=(rules.min_details_length||0),details.length?'':'Enter the purpose of the activity');
+  add('entity','Implementing entity',!!String(request.implementing_entity||'').trim());
+  if(rules.require_activity_code){
+    add('activity_code','AWP / activity code',!!String(request.activity_code||'').trim());
+  }
+  if(rules.require_funding_source){
+    add('funding_source','Funding source',!!String(request.funding_source||'').trim());
+  }
+  if(rules.require_deliverable){
+    add('deliverable','Expected deliverable',!!String(request.deliverable||'').trim());
+  }
+  if(rules.require_timeline){
+    add('timeline','Implementation timeline',!!String(request.timeline||'').trim());
+  }
+  const budget=await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(total),0) AS sum FROM budget_lines WHERE request_id=?').bind(request.id).first();
+  const lineCount=Number(budget?.n||0);
+  const budgetTotal=Number(budget?.sum||0);
+  add('budget_lines','Budget lines',lineCount>=(rules.min_budget_lines||0),`At least ${rules.min_budget_lines} budget line(s) required`);
+  add('budget_total','Budget total',budgetTotal>=(rules.min_budget_total||0),`Total must be at least NLe ${rules.min_budget_total}`);
+  const concept=await env.DB.prepare('SELECT * FROM concept_notes WHERE request_id=?').bind(request.id).first();
+  if(rules.require_concept_note){
+    const ok=!!concept;
+    add('concept_note','Concept note attached',ok);
+    if(concept&&Array.isArray(rules.concept_min_fields)){
+      for(const field of rules.concept_min_fields){
+        add(`concept_${field}`,`Concept note: ${field}`,!!String(concept[field]||'').trim());
+      }
+    }
+  }
+  const ready=items.every(i=>i.ok);
+  return {ready,items,rules};
+}
+
+async function assessPayloadReadiness(env,b){
+  const rules=await submissionRequirements(env);
+  const items=[];
+  const add=(key,label,ok,message)=>items.push({key,label,ok,message:message||(ok?'Complete':'Missing or incomplete')});
+  add('title','Request title',!!String(b.title||'').trim());
+  const details=String(b.details||'').trim();
+  add('details','Purpose / justification',details.length>=(rules.min_details_length||0));
+  add('entity','Implementing entity',!!String(b.implementing_entity||'').trim());
+  if(rules.require_activity_code)add('activity_code','AWP / activity code',!!String(b.activity_code||'').trim());
+  if(rules.require_funding_source)add('funding_source','Funding source',!!String(b.funding_source||'').trim());
+  if(rules.require_deliverable)add('deliverable','Expected deliverable',!!String(b.deliverable||'').trim());
+  if(rules.require_timeline)add('timeline','Implementation timeline',!!String(b.timeline||'').trim());
+  const lines=Array.isArray(b.budget_lines)?b.budget_lines.filter(l=>l&&String(l.description||'').trim()):[];
+  const budgetTotal=lines.reduce((sum,l)=>sum+(Number(l.total)||0),0);
+  add('budget_lines','Budget lines',lines.length>=(rules.min_budget_lines||0));
+  add('budget_total','Budget total',budgetTotal>=(rules.min_budget_total||0));
+  const concept=b.concept_note;
+  if(rules.require_concept_note){
+    add('concept_note','Concept note attached',!!concept&&typeof concept==='object');
+    if(concept&&Array.isArray(rules.concept_min_fields)){
+      for(const field of rules.concept_min_fields){
+        add(`concept_${field}`,`Concept note: ${field}`,!!String(concept[field]||'').trim());
+      }
+    }
+  }
+  return {ready:items.every(i=>i.ok),items,rules};
+}
+
+function buildApprovalRecordHtml(request,approver,approvedAmount,note,version){
+  const esc=(s)=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${esc(request.request_number)} Approval</title>
+<style>body{font-family:Segoe UI,system-ui,sans-serif;margin:32px;color:#0e2438;max-width:820px}h1{font-size:1.35rem}table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid #c9d6e0;padding:8px;text-align:left}th{background:#eef4fa}</style></head><body>
+<h1>SRHR-RAMS — Chairman approval record</h1>
+<p><strong>Reference:</strong> ${esc(request.request_number)}<br>
+<strong>Title:</strong> ${esc(request.title)}<br>
+<strong>Directorate / entity:</strong> ${esc(request.implementing_entity)}<br>
+<strong>Requested amount:</strong> NLe ${esc(Number(request.amount_nle||0).toFixed(2))}<br>
+<strong>Approved amount:</strong> NLe ${esc(Number(approvedAmount).toFixed(2))}<br>
+<strong>Approver:</strong> ${esc(approver)}<br>
+<strong>Decision time (UTC):</strong> ${esc(new Date().toISOString())}<br>
+<strong>Request version:</strong> ${esc(version)}</p>
+${note?`<p><strong>Comments / reason:</strong> ${esc(note)}</p>`:''}
+<p class="small">This record was generated by SRHR-RAMS and should be read together with the submitted request, budget, and concept note archived with the same reference.</p>
+</body></html>`;
+}
+
+async function storeApprovalRecord(env,u,request,approvedAmount,note){
+  if(!await archiveReady(env))return;
+  const html=buildApprovalRecordHtml(request,u.name,approvedAmount,note,Number(request.version||1));
+  const documentId=crypto.randomUUID();
+  const fileName=`${request.request_number}-approval.html`;
+  const now=new Date().toISOString();
+  const versionRow=await env.DB.prepare('SELECT COALESCE(MAX(version),0) AS v FROM documents WHERE request_id=? AND category=?').bind(request.id,'approval').first();
+  const version=Number(versionRow?.v||0)+1;
+  if(env.DOCUMENTS){
+    const storageKey=`requests/${request.id}/${documentId}`;
+    const bytes=new TextEncoder().encode(html);
+    const checksum=await sha256Hex(bytes);
+    await env.DOCUMENTS.put(storageKey,bytes,{httpMetadata:{contentType:'text/html;charset=utf-8'}});
+    await env.DB.prepare('INSERT INTO documents(id,request_id,kind,file_name,storage_key,mime_type,uploaded_by,created_at,category,version,checksum_sha256,size_bytes,inline_body) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(documentId,request.id,'approval',fileName,storageKey,'text/html',u.id,now,'approval',version,checksum,bytes.length,null).run();
+  }else if(await documentsInlineReady(env)){
+    await env.DB.prepare('INSERT INTO documents(id,request_id,kind,file_name,storage_key,mime_type,uploaded_by,created_at,category,version,checksum_sha256,size_bytes,inline_body) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(documentId,request.id,'approval',fileName,null,'text/html',u.id,now,'approval',version,null,html.length,html).run();
+  }
+  await audit(env,u,'APPROVAL_RECORD_STORED',request.id,fileName);
+}
+
+async function updateExistingRequest(env,u,request,b){
+  if(!allowed(u,['Directorate User','Administrator'])){
+    return {error:'forbidden',status:403};
+  }
+  if(u.role==='Directorate User'&&!ownsRequest(request,u)){
+    return {error:'forbidden',message:'Only the officer who created this request can edit it.',status:403};
+  }
+  const editable=(request.status==='Draft'&&request.current_stage==='Directorate')||(request.status==='Query Raised'&&request.current_stage==='Directorate');
+  if(!editable){
+    return {error:'not_editable',message:'Only a draft or a request returned to the Directorate can be edited.',status:409};
+  }
+  const amountNle=b.amount_nle==null?Number(request.amount_nle||0):Number(b.amount_nle);
+  if(!Number.isFinite(amountNle)||amountNle<0){
+    return {error:'invalid_amount',status:400};
+  }
+  const now=new Date().toISOString();
+  const rate=await currentUsdRate(env);
+  const amountUsd=rate?Math.round((amountNle/rate)*100)/100:Number(request.amount_usd||0);
+  await env.DB.prepare(`UPDATE requests SET title=?,request_type=?,implementing_entity=?,details=?,objective=?,activity_code=?,amount_nle=?,amount_usd=?,location=?,target_output=?,deliverable=?,timeline=?,procurement_method=?,estimated_completion=?,funding_source=?,fiscal_year=?,comments=?,updated_at=? WHERE id=?`).bind(
+    String(b.title||request.title).trim(),
+    b.request_type==='Procurement'?'Procurement':'Operational',
+    String(b.implementing_entity||request.implementing_entity).trim(),
+    b.details??request.details??'',
+    b.objective??request.objective??'',
+    b.activity_code??request.activity_code??'',
+    amountNle,
+    amountUsd,
+    b.location??request.location??'',
+    b.target_output??request.target_output??'',
+    b.deliverable??request.deliverable??'',
+    b.timeline??request.timeline??'',
+    b.procurement_method??request.procurement_method??'',
+    b.estimated_completion??request.estimated_completion??'',
+    b.funding_source??request.funding_source??'',
+    b.fiscal_year??request.fiscal_year??'',
+    b.comments??request.comments??'',
+    now,
+    request.id
+  ).run();
+  if(Array.isArray(b.budget_lines)){
+    await replaceBudgetLines(env,request.id,b.budget_lines,now);
+  }
+  if(b.concept_note){
+    await replaceConceptNote(env,request.id,b.concept_note,now);
+  }
+  if(await archiveReady(env)){
+    await env.DB.prepare('INSERT INTO request_events(id,request_id,actor_user_id,action,from_status,to_status,from_stage,to_stage,note,request_version,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),request.id,u.id,'DRAFT_SAVED',request.status,request.status,request.current_stage,request.current_stage,'Draft updated',Number(request.version||1),now).run();
+  }
+  await audit(env,u,'REQUEST_DRAFT_UPDATED',request.id,request.request_number);
+  const refreshed=await env.DB.prepare('SELECT * FROM requests WHERE id=?').bind(request.id).first();
+  return {ok:true,request:refreshed};
 }
 
 async function persistNewRequest(env,u,b,id,now){
@@ -486,8 +770,13 @@ async function handleArchive(req,env,u,p,url){
 
   if(documentGet){
     const scope=archiveScope(u);
-    const doc=await env.DB.prepare(`SELECT d.id,d.file_name,d.mime_type,d.storage_key,d.request_id FROM documents d JOIN requests r ON r.id=d.request_id WHERE d.id=? AND ${scope.sql}`).bind(documentGet[1],...scope.args).first();
+    const inlineSelect=await documentsInlineReady(env)?',d.inline_body':'';
+    const doc=await env.DB.prepare(`SELECT d.id,d.file_name,d.mime_type,d.storage_key,d.request_id${inlineSelect} FROM documents d JOIN requests r ON r.id=d.request_id WHERE d.id=? AND ${scope.sql}`).bind(documentGet[1],...scope.args).first();
     if(!doc)return J({error:'not_found'},404);
+    if(doc.inline_body){
+      const preview=url.searchParams.get('preview')==='1';
+      return new Response(doc.inline_body,{headers:{'content-type':doc.mime_type||'text/html;charset=utf-8','content-disposition':`${preview?'inline':'attachment'}; filename="${safeFileName(doc.file_name).replaceAll('"','')}"`,'x-content-type-options':'nosniff','cache-control':'no-store'}});
+    }
     if(!env.DOCUMENTS)return J({error:'storage_unconfigured',message:'Document storage is not configured. Add a private R2 binding named DOCUMENTS.'},503);
     const object=await env.DOCUMENTS.get(doc.storage_key);
     if(!object)return J({error:'storage_missing',message:'The document metadata exists, but the stored file could not be read.'},502);
@@ -568,8 +857,61 @@ async function requestFinancials(env,request){
     disbursed=money2(disbRow?.total||0);
   }
   const outstanding=money2(Math.max(0,approved-verifiedReceipts));
+  const unspent=money2(Math.max(0,approved-disbursed));
   const balanced=approved<=0||(disbursed===approved&&verifiedReceipts===disbursed&&pending===0);
-  return {approved,disbursed,verified_receipts:verifiedReceipts,pending_receipts:pending,outstanding,balanced};
+  return {
+    approved,
+    disbursed,
+    verified_receipts:verifiedReceipts,
+    pending_receipts:pending,
+    outstanding,
+    unspent,
+    reported_expenditure:verifiedReceipts,
+    balanced,
+    definitions:{
+      approved:'Chairman approved amount, or the requested amount if none was recorded.',
+      disbursed:'Sum of disbursements that have not been voided.',
+      verified_receipts:'Receipts marked Verified. Pending or rejected receipts are not counted.',
+      outstanding:'Approved amount minus verified receipts (never below zero).',
+      unspent:'Approved amount minus disbursements (never below zero).'
+    }
+  };
+}
+async function rateHistoryReady(env){
+  try{
+    await env.DB.prepare('SELECT id FROM usd_rate_history LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+async function recordUsdRate(env,u,rate,source){
+  const setting={rate,updated_at:new Date().toISOString(),updated_by:u.name,source:source||'IHPAU desk'};
+  await env.DB.prepare(
+    `INSERT INTO system_settings(key,value,updated_at) VALUES(?,?,?)
+     ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`
+  ).bind('usd_nle_rate',JSON.stringify(setting),setting.updated_at).run();
+  if(await rateHistoryReady(env)){
+    await env.DB.prepare('INSERT INTO usd_rate_history(id,rate,effective_at,source,changed_by,changed_by_name,created_at) VALUES(?,?,?,?,?,?,?)').bind(crypto.randomUUID(),rate,setting.updated_at,setting.source,u.id,u.name,setting.updated_at).run();
+  }
+  await audit(env,u,'USD_RATE_UPDATED','',`1 USD = NLe ${rate}`);
+  return setting;
+}
+async function closureChecklist(env,request){
+  const items=[];
+  const add=(key,label,ok,message)=>items.push({key,label,ok,message});
+  add('legal_hold','Legal hold',Number(request.legal_hold)!==1,Number(request.legal_hold)===1?'A legal hold is in place.':'No legal hold.');
+  const blocked=await assertCanCloseFinancially(env,request);
+  add('financials','Financial reconciliation',!blocked,blocked?.message||'Disbursements and verified receipts match the approved amount.');
+  let deliverableOk=true;
+  let deliverableMessage='No deliverables are recorded.';
+  try{
+    const row=await env.DB.prepare(`SELECT COUNT(*) AS n, SUM(CASE WHEN status!='Verified' THEN 1 ELSE 0 END) AS open FROM deliverables WHERE request_id=?`).bind(request.id).first();
+    if(Number(row?.n||0)>0){
+      deliverableOk=Number(row.open||0)===0;
+      deliverableMessage=deliverableOk?'All recorded deliverables are verified.':'A recorded deliverable is still pending.';
+    }
+  }catch{/* table optional */}
+  add('deliverables','Deliverables',deliverableOk,deliverableMessage);
+  return {ready:items.every(i=>i.ok),items,financials:await requestFinancials(env,request)};
 }
 async function assertCanCloseFinancially(env,request){
   const pending=await env.DB.prepare(`SELECT COUNT(*) AS n FROM receipts WHERE request_id=? AND IFNULL(verification_status,'Pending')!='Verified'`).bind(request.id).first();
@@ -863,9 +1205,26 @@ function resolveTransition(request,user,body){
 async function applyTransition(env,u,request,body){
   const next=resolveTransition(request,u,body);
   if(next.error||next.already)return next;
+  const permission={
+    submit:'submit_requests',withdraw:'submit_requests',clear:'review_requests',query:'raise_query',
+    approve:'approve_requests',reject:'approve_requests',finance:'disburse_funds',
+    verify_receipts:'verify_receipts',close:'close_requests'
+  }[body.action];
+  if(permission&&!(await hasPermission(env,u,permission))){
+    return {error:'forbidden',message:'Your account does not have permission for this action.',status:403};
+  }
+  if(body.action==='submit'&&!next.already){
+    const readiness=await assessSubmissionReadiness(env,request);
+    if(!readiness.ready){
+      return {error:'submission_incomplete',message:'Complete all required items before submitting.',status:400,readiness};
+    }
+  }
   if(next.close){
-    const blocked=await assertCanCloseFinancially(env,request);
-    if(blocked)return blocked;
+    const checklist=await closureChecklist(env,request);
+    if(!checklist.ready){
+      const failed=checklist.items.find(item=>!item.ok);
+      return {error:'closure_blocked',message:failed?.message||'Closure requirements are not met.',status:409,checklist};
+    }
   }
   if(next.verifyReceipts){
     const pending=await env.DB.prepare(`SELECT COUNT(*) AS n FROM receipts WHERE request_id=? AND IFNULL(verification_status,'Pending')!='Verified'`).bind(request.id).first();
@@ -895,6 +1254,10 @@ async function applyTransition(env,u,request,body){
   const approvedDetail=next.approvedAmount==null?'':`; approved_amount_nle ${next.approvedAmount}; version ${Number(request.version||1)}`;
   await audit(env,u,'REQUEST_'+next.event,request.id,`${request.status}/${request.current_stage} > ${next.status}/${next.stage}${approvedDetail}${reason?`; ${reason}`:''}`);
   await note(env,next.notify,request.request_number,next.status,reason||`${request.request_number}: ${next.status}`);
+  if(ready&&next.event==='APPROVE'){
+    const refreshed=await env.DB.prepare('SELECT * FROM requests WHERE id=?').bind(request.id).first();
+    await storeApprovalRecord(env,u,refreshed,next.approvedAmount,reason);
+  }
   return {ok:true,status:next.status,current_stage:next.stage,request_number:request.request_number};
 }
 
@@ -1180,15 +1543,28 @@ export default {
         if(typeof rate!=='number' || !Number.isFinite(rate) || rate<=0){
           return J({error:'Enter a positive NLe amount for 1 USD.'},400);
         }
-        const setting={rate,updated_at:new Date().toISOString(),updated_by:u.name};
-        await env.DB.prepare(
-          `INSERT INTO system_settings(key,value,updated_at) VALUES(?,?,?)
-           ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`
-        ).bind('usd_nle_rate',JSON.stringify(setting),setting.updated_at).run();
-        await audit(env,u,'USD_RATE_UPDATED','',`1 USD = NLe ${rate}`);
+        const setting=await recordUsdRate(env,u,rate,body?.source);
         return J(setting);
       }
       return J({error:'method_not_allowed'},405,{allow:'GET, PUT'});
+    }
+
+    if(p==='/api/finance/usd-rate/history'&&req.method==='GET'){
+      if(!await rateHistoryReady(env))return J({history:[]});
+      const {results}=await env.DB.prepare('SELECT id,rate,effective_at,source,changed_by_name,created_at FROM usd_rate_history ORDER BY effective_at DESC LIMIT 50').all();
+      return J({history:results});
+    }
+
+    if(p==='/api/finance/receipts'&&req.method==='GET'){
+      if(!['IHPAU','Administrator'].includes(u.role))return J({error:'forbidden'},403);
+      const status=url.searchParams.get('status')||'Pending';
+      const {results}=await env.DB.prepare(
+        `SELECT r.id,r.request_id,r.reference_number,r.amount,r.verification_status,r.comments,r.created_at,q.request_number,q.title
+         FROM receipts r JOIN requests q ON q.id=r.request_id
+         WHERE r.verification_status=? AND q.current_stage='IHPAU / Finance'
+         ORDER BY r.created_at ASC LIMIT 200`
+      ).bind(status).all();
+      return J({receipts:results});
     }
 
     /* =========================
@@ -1295,6 +1671,23 @@ export default {
 
 
     /* =========================
+       ROLE QUEUES (server-filtered)
+       ========================= */
+
+    if(p==='/api/queues'&&req.method==='GET'){
+      const desk=String(url.searchParams.get('desk')||'').trim().toLowerCase();
+      if(!QUEUE_DESKS.has(desk)){
+        return J({error:'invalid_desk',message:'Use desk=secretary, chairman, ihpau, or directorate.'},400);
+      }
+      if(!queueAccess(u,desk)){
+        return J({error:'forbidden',message:'You cannot view this desk queue.'},403);
+      }
+      const records=await fetchQueueRecords(env,u,desk);
+      return J({desk,total:records.length,records});
+    }
+
+
+    /* =========================
        REQUEST LIST
        ========================= */
 
@@ -1367,6 +1760,16 @@ export default {
 
       }
 
+      if(b.status==='Submitted'){
+        const rules=await submissionRequirements(env);
+        if(rules.enforce_on_direct_submit){
+          const readiness=await assessPayloadReadiness(env,b);
+          if(!readiness.ready){
+            return J({error:'submission_incomplete',message:'Complete all required items before submitting.',readiness},400);
+          }
+        }
+      }
+
 
       const keyCheck=idempotencyKey(req,b);
       if(keyCheck.error)return J({error:keyCheck.error,message:keyCheck.message},400);
@@ -1421,6 +1824,69 @@ export default {
 
     }
 
+
+    const readinessRoute=p.match(/^\/api\/requests\/([^/]+)\/readiness$/);
+    if(readinessRoute&&req.method==='GET'){
+      const request=await visibleRequest(env,u,decodeURIComponent(readinessRoute[1]));
+      if(!request)return J({error:'not_found'},404);
+      return J(await assessSubmissionReadiness(env,request));
+    }
+
+    const approvalRecordRoute=p.match(/^\/api\/requests\/([^/]+)\/approval-record$/);
+    if(approvalRecordRoute&&req.method==='GET'){
+      const request=await visibleRequest(env,u,decodeURIComponent(approvalRecordRoute[1]));
+      if(!request)return J({error:'not_found'},404);
+      if(!request.approved_at&&!request.approved_amount_nle){
+        return J({error:'not_approved',message:'This request has not been approved yet.'},409);
+      }
+      const doc=await env.DB.prepare(`SELECT id FROM documents WHERE request_id=? AND category='approval' AND superseded_at IS NULL ORDER BY version DESC LIMIT 1`).bind(request.id).first();
+      if(doc){
+        return J({document_id:doc.id,download_path:`/api/documents/${doc.id}`,preview_path:`/api/documents/${doc.id}?preview=1`});
+      }
+      const html=buildApprovalRecordHtml(request,request.approving_authority||'Chairman',request.approved_amount_nle??request.amount_nle,'',Number(request.version||1));
+      return new Response(html,{headers:{'content-type':'text/html;charset=utf-8','cache-control':'no-store'}});
+    }
+
+    const requestPatch=p.match(/^\/api\/requests\/([^/]+)$/);
+    if(requestPatch&&req.method==='PATCH'){
+      const request=await visibleRequest(env,u,decodeURIComponent(requestPatch[1]));
+      if(!request)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      const result=await updateExistingRequest(env,u,request,b);
+      if(result.error)return J({error:result.error,message:result.message||result.error},result.status||400);
+      return J(result);
+    }
+
+    if(p==='/api/register'&&req.method==='GET'){
+      if(!allowed(u,['Project Secretary','IHPAU','Chairman','Administrator'])){
+        return J({error:'forbidden'},403);
+      }
+      const scope=archiveScope(u);
+      let st=env.DB.prepare(
+        `SELECT request_number,title,implementing_entity,requesting_authority,approving_authority,request_type,details,activity_code,amount_nle,approved_amount_nle,status,current_stage,submitted_at,approved_at
+         FROM requests WHERE ${scope.sql} AND status!='Draft'
+         ORDER BY COALESCE(submitted_at,created_at) DESC LIMIT 500`
+      );
+      if(scope.args.length)st=st.bind(...scope.args);
+      return J({records:(await st.all()).results});
+    }
+
+    if(p==='/api/register/export'&&req.method==='GET'){
+      if(!allowed(u,['Project Secretary','IHPAU','Chairman','Administrator'])){
+        return J({error:'forbidden'},403);
+      }
+      const scope=archiveScope(u);
+      let st=env.DB.prepare(
+        `SELECT request_number,title,implementing_entity,requesting_authority,approving_authority,request_type,details,activity_code,amount_nle,status,current_stage,submitted_at
+         FROM requests WHERE ${scope.sql} AND status!='Draft'
+         ORDER BY COALESCE(submitted_at,created_at) DESC LIMIT 5000`
+      );
+      if(scope.args.length)st=st.bind(...scope.args);
+      const rows=(await st.all()).results;
+      const header=['request_number','title','implementing_entity','requesting_authority','approving_authority','request_type','activity_code','amount_nle','status','current_stage','submitted_at'];
+      const csv=[header.join(','),...rows.map(row=>header.map(key=>csvCell(row[key])).join(','))].join('\n');
+      return new Response(csv,{headers:{'content-type':'text/csv; charset=utf-8','content-disposition':'attachment; filename="srhr-register.csv"','cache-control':'no-store'}});
+    }
 
     /* =========================
        REQUEST TRANSITIONS
@@ -1482,13 +1948,88 @@ export default {
       }
       const duplicate=await env.DB.prepare(`SELECT id FROM disbursements WHERE request_id=? AND reference_number=? AND voided_at IS NULL`).bind(request.id,reference).first();
       if(duplicate)return J({error:'duplicate_disbursement',message:'That disbursement reference is already recorded for this request.'},409);
+      const payKey=String(b.idempotency_key||'').trim();
+      if(payKey){
+        try{
+          const existing=await env.DB.prepare('SELECT disbursement_id FROM disbursement_keys WHERE user_id=? AND key=?').bind(u.id,payKey).first();
+          if(existing){
+            const prior=await env.DB.prepare('SELECT id,reference_number,amount_nle,rate_snapshot FROM disbursements WHERE id=?').bind(existing.disbursement_id).first();
+            if(prior)return J({ok:true,id:prior.id,reference_number:prior.reference_number,amount_nle:prior.amount_nle,rate_snapshot:prior.rate_snapshot,idempotent:true,financials:await requestFinancials(env,request)});
+          }
+        }catch{/* keys table optional */}
+      }
       const now=new Date().toISOString();
       const rate=request.rate_snapshot??await currentUsdRate(env);
       const id=crypto.randomUUID();
       await env.DB.prepare(`INSERT INTO disbursements(id,request_id,reference_number,amount_nle,rate_snapshot,rate_snapshot_at,recorded_by,comments,created_at) VALUES(?,?,?,?,?,?,?,?,?)`).bind(id,request.id,reference,amount,rate,rate?now:null,u.id,String(b.comments||''),now).run();
+      if(payKey){
+        await env.DB.prepare('INSERT INTO disbursement_keys(user_id,key,disbursement_id,created_at) VALUES(?,?,?,?)').bind(u.id,payKey,id,now).run().catch(()=>{});
+      }
       await audit(env,u,'DISBURSEMENT_RECORDED',request.id,`${reference}; NLe ${amount}; rate ${rate??'n/a'}`);
       const updated=await requestFinancials(env,request);
       return J({ok:true,id,reference_number:reference,amount_nle:amount,rate_snapshot:rate,financials:updated},201);
+    }
+
+    const receiptDecision=p.match(/^\/api\/receipts\/([^/]+)\/decision$/);
+    if(receiptDecision&&req.method==='POST'){
+      if(!['IHPAU','Administrator'].includes(u.role))return J({error:'forbidden'},403);
+      const receipt=await env.DB.prepare('SELECT * FROM receipts WHERE id=?').bind(decodeURIComponent(receiptDecision[1])).first();
+      if(!receipt)return J({error:'not_found'},404);
+      const request=await visibleRequest(env,u,receipt.request_id);
+      if(!request)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      const decision=b.decision==='Verified'?'Verified':b.decision==='Rejected'?'Rejected':'';
+      if(!decision)return J({error:'invalid_decision',message:'Use decision Verified or Rejected.'},400);
+      const note=String(b.note||'').trim();
+      if(decision==='Rejected'&&!note)return J({error:'reason_required',message:'A reason is required to reject a receipt.'},400);
+      const now=new Date().toISOString();
+      await env.DB.prepare('UPDATE receipts SET verification_status=?,comments=?,verified_at=? WHERE id=?').bind(decision,note||receipt.comments||'',decision==='Verified'?now:null,receipt.id).run();
+      await audit(env,u,decision==='Verified'?'RECEIPT_VERIFIED':'RECEIPT_REJECTED',request.id,`${receipt.reference_number}; ${note}`);
+      return J({ok:true,id:receipt.id,verification_status:decision,financials:await requestFinancials(env,request)});
+    }
+
+    const disbursementVoid=p.match(/^\/api\/requests\/([^/]+)\/disbursements\/([^/]+)\/void$/);
+    if(disbursementVoid&&req.method==='POST'){
+      if(!['IHPAU','Administrator'].includes(u.role))return J({error:'forbidden'},403);
+      const request=await visibleRequest(env,u,decodeURIComponent(disbursementVoid[1]));
+      if(!request)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      const reason=String(b.reason||'').trim();
+      if(!reason)return J({error:'reason_required',message:'A reason is required to void a disbursement.'},400);
+      const row=await env.DB.prepare('SELECT id,voided_at,reference_number,amount_nle FROM disbursements WHERE id=? AND request_id=?').bind(decodeURIComponent(disbursementVoid[2]),request.id).first();
+      if(!row)return J({error:'not_found'},404);
+      if(row.voided_at)return J({already:true,id:row.id});
+      const now=new Date().toISOString();
+      await env.DB.prepare('UPDATE disbursements SET voided_at=?,void_reason=? WHERE id=?').bind(now,reason,row.id).run();
+      await audit(env,u,'DISBURSEMENT_VOIDED',request.id,`${row.reference_number}; NLe ${row.amount_nle}; ${reason}`);
+      return J({ok:true,id:row.id,financials:await requestFinancials(env,request)});
+    }
+
+    const closureRoute=p.match(/^\/api\/requests\/([^/]+)\/closure-checklist$/);
+    if(closureRoute&&req.method==='GET'){
+      const request=await visibleRequest(env,u,decodeURIComponent(closureRoute[1]));
+      if(!request)return J({error:'not_found'},404);
+      return J(await closureChecklist(env,request));
+    }
+
+    const dossierRoute=p.match(/^\/api\/requests\/([^/]+)\/financial-dossier$/);
+    if(dossierRoute&&req.method==='GET'){
+      if(!['IHPAU','Administrator','Chairman','Project Secretary'].includes(u.role))return J({error:'forbidden'},403);
+      const request=await visibleRequest(env,u,decodeURIComponent(dossierRoute[1]));
+      if(!request)return J({error:'not_found'},404);
+      const financials=await requestFinancials(env,request);
+      const disbursements=await financeReady(env)?(await env.DB.prepare('SELECT reference_number,amount_nle,rate_snapshot,voided_at,void_reason,created_at FROM disbursements WHERE request_id=? ORDER BY created_at').bind(request.id).all()).results:[];
+      const receipts=(await env.DB.prepare('SELECT reference_number,amount,verification_status,comments,created_at,verified_at FROM receipts WHERE request_id=? ORDER BY created_at').bind(request.id).all()).results;
+      return J({
+        request_number:request.request_number,
+        title:request.title,
+        status:request.status,
+        rate_snapshot:request.rate_snapshot,
+        financials,
+        disbursements,
+        receipts,
+        generated_at:new Date().toISOString()
+      });
     }
 
 
@@ -1522,6 +2063,29 @@ export default {
 
       return J(results);
 
+    }
+
+    const notificationRead=p.match(/^\/api\/notifications\/([^/]+)\/read$/);
+    if(notificationRead&&req.method==='POST'){
+      const id=decodeURIComponent(notificationRead[1]);
+      const row=await env.DB.prepare('SELECT id,recipient_role,recipient_user_id FROM notifications WHERE id=?').bind(id).first();
+      if(!row)return J({error:'not_found'},404);
+      const mine=row.recipient_user_id!=null
+        ?Number(row.recipient_user_id)===Number(u.id)
+        :row.recipient_role===u.role;
+      if(!mine&&u.role!=='Administrator')return J({error:'forbidden'},403);
+      const now=new Date().toISOString();
+      await env.DB.prepare('UPDATE notifications SET read_at=? WHERE id=? AND read_at IS NULL').bind(now,id).run();
+      return J({ok:true,read_at:now});
+    }
+
+    if(p==='/api/notifications/read-all'&&req.method==='POST'){
+      const now=new Date().toISOString();
+      await env.DB.prepare(
+        `UPDATE notifications SET read_at=?
+         WHERE read_at IS NULL AND (recipient_user_id=? OR recipient_role=?)`
+      ).bind(now,u.id,u.role).run();
+      return J({ok:true,read_at:now});
     }
 
 
@@ -1908,7 +2472,14 @@ export default {
       );
       if(scope.args.length)recent=recent.bind(...scope.args);
       const recentRows=await recent.all();
-      return J({...row,recent:recentRows.results});
+      const queue_counts=await queueCountsForUser(env,u);
+      const pending_action=
+        u.role==='Project Secretary'?queue_counts.secretary:
+        u.role==='Chairman'?queue_counts.chairman:
+        u.role==='IHPAU'?queue_counts.ihpau:
+        u.role==='Directorate User'?queue_counts.directorate_action:
+        null;
+      return J({...row,recent:recentRows.results,queue_counts,pending_action});
 
     }
 

@@ -16,7 +16,10 @@ $files = @(
   "migrations/001_archive.sql",
   "migrations/002_workflow.sql",
   "migrations/003_finance.sql",
-  "migrations/004_retention.sql"
+  "migrations/004_retention.sql",
+  "migrations/005_queues.sql",
+  "migrations/006_paperless.sql",
+  "migrations/007_finance_phase3.sql"
 )
 
 Write-Host "Target: $(if ($Remote) { 'remote' } else { 'local' }) D1 (srhr-rams-db)"

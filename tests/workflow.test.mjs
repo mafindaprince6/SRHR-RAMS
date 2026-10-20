@@ -64,6 +64,12 @@ test('queries need a reason, rejections stay searchable, and a creator cannot ap
   const created=await (await call(db,'/api/requests','tok-d',{method:'POST',body:{title:'Returned training',implementing_entity:'DPPI',amount_nle:10}})).json();
   assert.equal((await act(db,created.id,'tok-s',{action:'query'})).status,400);
   assert.equal((await act(db,created.id,'tok-s',{action:'query',note:'Add the venue'})).status,200);
+  await call(db,'/api/requests/'+created.id,'tok-d',{method:'PATCH',body:{
+    details:'Returned training with venue details added.',
+    deliverable:'Report',timeline:'2026',
+    budget_lines:[{description:'Training',quantity:1,unit_cost:10,total:10}],
+    concept_note:{background:'Training need',goal:'Build capacity'}
+  }});
   const resubmitted=await act(db,created.id,'tok-d',{action:'submit',note:'Venue added'});
   assert.equal(resubmitted.data.status,'Submitted');
   assert.equal(db.prepare('SELECT version FROM requests WHERE id=?').get(created.id).version,2);
@@ -135,6 +141,13 @@ test('submitting a draft records the date, and the creator cannot approve it',as
   const db=await setup();
   const draft=await (await call(db,'/api/requests','tok-d',{method:'POST',body:{title:'Draft visit',implementing_entity:'DPPI',amount_nle:8,status:'Draft'}})).json();
   assert.equal(db.prepare('SELECT submitted_at FROM requests WHERE id=?').get(draft.id).submitted_at,null);
+  await call(db,'/api/requests/'+draft.id,'tok-d',{method:'PATCH',body:{
+    details:'Purpose text for the draft supervision visit.',
+    deliverable:'Liquidation report',
+    timeline:'2026-01-01 to 2026-02-01',
+    budget_lines:[{description:'DSA',quantity:1,unit_cost:8,total:8}],
+    concept_note:{background:'Background for the visit',goal:'Improve facility reporting'}
+  }});
   assert.equal((await act(db,draft.id,'tok-d',{action:'submit'})).data.status,'Submitted');
   assert.ok(db.prepare('SELECT submitted_at FROM requests WHERE id=?').get(draft.id).submitted_at);
   await act(db,draft.id,'tok-s',{action:'clear'});

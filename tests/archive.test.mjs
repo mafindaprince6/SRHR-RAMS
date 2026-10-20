@@ -149,6 +149,18 @@ test('archive routes require the migration and a session',async()=>{
   assert.equal((await worker.fetch(new Request('https://srhr.test/api/archive'),{DB:asD1(db),ASSETS:{fetch(){return new Response('',{status:404})}}})).status,401);
 });
 
+test('IHPAU workspace has finance dashboard without request submission menus',async()=>{
+  const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+  const block=html.match(/'IHPAU':\{views:\[([^\]]+)\],home:'([^']+)'/);
+  assert.ok(block,'IHPAU RBAC defaults should be defined');
+  assert.match(block[1],/'dashboard'/);
+  for(const view of ['new','concept','requests']){
+    assert.doesNotMatch(block[1],new RegExp(`['"]${view}['"]`),`IHPAU must not include ${view}`);
+  }
+  assert.equal(block[2],'dashboard');
+  assert.match(html,/id="dashHeroIhpau"/);
+});
+
 test('archive screen is present for every role and does not restore the theme switcher',async()=>{
   const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
   const script=await readFile(new URL('../public/archive.js',import.meta.url),'utf8');

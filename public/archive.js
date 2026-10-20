@@ -105,7 +105,10 @@ function renderArchiveDetail(){
   const disbursements=(data.disbursements||[]).length?`<table><tr><th>Reference</th><th>Amount</th><th>Rate saved</th></tr>${data.disbursements.map(item=>`<tr><td>${esc(item.reference_number)}</td><td>${archiveMoney(item.amount_nle)}</td><td>${item.rate_snapshot==null?'—':esc(item.rate_snapshot)}</td></tr>`).join('')}</table>`:'<p class="small">No disbursements are recorded.</p>';
   const receipts=(data.receipts||[]).length?`<table><tr><th>Reference</th><th>Amount</th><th>Status</th></tr>${data.receipts.map(item=>`<tr><td>${esc(item.reference_number)}</td><td>${archiveMoney(item.amount)}</td><td>${esc(item.verification_status)}</td></tr>`).join('')}</table>`:'<p class="small">No receipts are recorded.</p>';
   const balanceLine=finance.approved==null?'':`<p class="small">${finance.balanced?'Approved, disbursed, and verified receipts match.':'Outstanding balance: '+archiveMoney(finance.outstanding)+'. Disbursed '+archiveMoney(finance.disbursed)+', verified receipts '+archiveMoney(finance.verified_receipts)+'.'}</p>`;
-  const documents=data.documents.length?data.documents.map(doc=>`<div class="docRow"><div><b>${esc(doc.file_name)}</b><div class="small">${esc(docLabel(doc))}${doc.superseded_at?' · replaced':''}</div></div><button type="button" class="btn secondary" data-doc="${esc(doc.id)}" data-mime="${esc(doc.mime_type||'')}" data-name="${esc(doc.file_name)}">Download</button></div>`).join(''):'<p class="small">No documents are attached.</p>';
+  const documents=data.documents.length?data.documents.map(doc=>{
+    const previewable=/^image\//.test(doc.mime_type||'')||doc.mime_type==='application/pdf'||(doc.file_name||'').endsWith('.html');
+    return `<div class="docRow"><div><b>${esc(doc.file_name)}</b><div class="small">${esc(docLabel(doc))}${doc.superseded_at?' · replaced':''}${doc.version?` · v${esc(doc.version)}`:''}</div></div><div style="display:flex;gap:6px">${previewable?`<button type="button" class="btn secondary" data-preview="${esc(doc.id)}">Preview</button>`:''}<button type="button" class="btn secondary" data-doc="${esc(doc.id)}" data-mime="${esc(doc.mime_type||'')}" data-name="${esc(doc.file_name)}">Download</button></div></div>`;
+  }).join(''):'<p class="small">No documents are attached.</p>';
   const timeline=data.events.length?`<div class="timeline">${data.events.map(event=>`<div class="event"><b>${esc(eventLabel(event.action))}</b><div class="small">${esc(event.actor_name||'System')}${event.created_at?` · ${esc(archiveWhen(event.created_at))}`:''}</div><div>${esc(event.note||'')}</div></div>`).join('')}</div>`:'<p class="small">No decisions are recorded yet.</p>';
   const audit=data.audit.length?`<table><tr><th>When</th><th>Who</th><th>What happened</th></tr>${data.audit.map(item=>`<tr><td>${esc(archiveWhen(item.created_at))}</td><td>${esc(item.actor_name||'System')}</td><td>${esc(item.details||item.action)}</td></tr>`).join('')}</table>`:'<p class="small">No activity is recorded for this request.</p>';
   const box=document.getElementById('archiveDetail');
@@ -129,6 +132,7 @@ function renderArchiveDetail(){
   box.querySelector('#archiveBack')?.addEventListener('click',closeArchiveDetail);
   box.querySelector('#archivePrint')?.addEventListener('click',()=>{document.body.classList.add('printingArchive');window.print()});
   box.querySelectorAll('[data-doc]').forEach(button=>button.addEventListener('click',()=>downloadArchiveDocument(button)));
+  box.querySelectorAll('[data-preview]').forEach(button=>button.addEventListener('click',()=>window.open('/api/documents/'+encodeURIComponent(button.dataset.preview)+'?preview=1','_blank','noopener')));
   box.querySelector('#archiveUpload')?.addEventListener('submit',uploadArchiveDocument);
   box.focus();
 }

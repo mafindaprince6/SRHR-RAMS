@@ -320,18 +320,20 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="hero">
 <div style="position:absolute;right:-25px;top:-65px;width:230px;height:230px;border-radius:50%;border:1px solid rgba(255,255,255,.13);box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 76px rgba(255,255,255,.02)"></div>
 <div style="max-width:700px;position:relative"><div class="kicker">MINISTRY OF HEALTH • SRHR PROJECT</div>
-<div style="font:800 clamp(22px,2.6vw,29px)/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
-<div style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
-<div style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" onclick="show('new')"><svg class="ico"><use href="#i-plus"></use></svg> Create New Request</button></div></div></div>
-<div class="cards"><div class="card"><div class="label">IN SCOPE</div><div class="metric" id="dashTotal">—</div></div><div class="card"><div class="label">AWAITING APPROVAL</div><div class="metric" id="dashAwaiting">—</div></div><div class="card"><div class="label">AT IHPAU</div><div class="metric" id="dashIhpau">—</div></div><div class="card"><div class="label">COMPLETED</div><div class="metric" id="dashClosed">—</div></div></div>
-<h2>Create a request</h2><div class="actions">
+<div id="dashHeroTitle" style="font:800 clamp(22px,2.6vw,29px)/1.2 Manrope;margin:8px 0">Every request. One accountable journey.</div>
+<div id="dashHeroSub" style="color:#d5dee6;max-width:600px">Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.</div>
+<div class="applicant-only" style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" onclick="show('new')"><svg class="ico"><use href="#i-plus"></use></svg> Create New Request</button></div>
+<div id="dashHeroIhpau" class="ihpau-dashboard-only" hidden style="margin-top:18px"><button class="btn" style="background:#fff;color:#0e3a74;box-shadow:none" type="button" onclick="show('ihpau')"><svg class="ico"><use href="#i-briefcase"></use></svg> Open IHPAU Desk</button></div></div></div>
+<div class="cards"><div class="card" data-dash-card="total"><div class="label" id="dashLabelTotal">IN SCOPE</div><div class="metric" id="dashTotal">—</div></div><div class="card" data-dash-card="awaiting"><div class="label" id="dashLabelAwaiting">AWAITING APPROVAL</div><div class="metric" id="dashAwaiting">—</div></div><div class="card" data-dash-card="ihpau"><div class="label" id="dashLabelIhpau">AT IHPAU</div><div class="metric" id="dashIhpau">—</div></div><div class="card" data-dash-card="closed"><div class="label" id="dashLabelClosed">COMPLETED</div><div class="metric" id="dashClosed">—</div></div></div>
+<h2 class="applicant-only">Create a request</h2><div class="actions applicant-only">
 <div class="action" onclick="show('new');choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Complete the SRHR request directly in the system.</span></div>
 <div class="action" onclick="show('new');choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Completed Request Form</b><span class="small">Upload the existing Excel form and review extracted information before submission.</span></div>
 </div>
-<div class="panel"><h3>Recent Requests</h3><div class="tableWrap"><table><thead><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead><tbody id="dashboardRecent"><tr><td colspan="5" class="small">Sign in to load live requests.</td></tr></tbody></table></div>
+<div class="panel"><h3 id="dashRecentTitle">Recent Requests</h3><div class="tableWrap"><table><thead><tr><th>Request ID</th><th>Type</th><th>Activity</th><th>Amount</th><th>Status</th></tr></thead><tbody id="dashboardRecent"><tr><td colspan="5" class="small">Sign in to load live requests.</td></tr></tbody></table></div>
 </section>
 
 <section id="new" class="view">
+<p id="draftEditBanner" class="small" hidden role="status"></p>
 <div class="requestSummary"><div><div class="label">SUMMARY BUDGET TOTAL</div><strong class="budgetAmount" data-budget-total>NLe 0.00</strong><div class="small" id="budgetUsdTotal"></div></div><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div></div>
 <div class="steps"><span class="step on">1 Start</span><span class="step">2 Request details</span><span class="step">3 Budget</span><span class="step">4 Documents</span><span class="step">5 Review & submit</span></div>
 <div id="start" class="panel"><h2>How would you like to start?</h2><div class="actions"><div class="action" onclick="choose('online')"><b><svg class="ico"><use href="#i-edit"></use></svg> Fill Request Online</b><span class="small">Enter all information directly in SRHR-RAMS.</span></div><div class="action" onclick="choose('upload')"><b><svg class="ico"><use href="#i-upload"></use></svg> Upload Existing Excel Form</b><span class="small">The system will extract the request details and budget lines.</span></div></div></div>
@@ -359,7 +361,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 </div>
 <h3>Supporting Documents</h3><div class="formgrid"><div class="field"><label>Other Supporting Documents</label><input type="file" multiple></div><div class="field"><label>Additional Budget / Evidence</label><input type="file" multiple></div></div>
 <p id="conceptAttachState" class="small" role="status"></p>
-<br><button class="btn secondary" type="button" onclick="submitReq('Draft')">Save Draft</button> <button class="btn" type="button" onclick="submitReq('Submitted')">Review & Submit</button>
+<div id="submissionReadiness" class="panel hide" style="margin-top:14px"><h3 style="margin-top:0">Submission checklist</h3><ul id="readinessList" class="small"></ul><button class="btn secondary" type="button" onclick="refreshReadiness()">Refresh checklist</button></div>
+<br><button class="btn secondary" type="button" onclick="submitReq('Draft')">Save Draft</button> <button class="btn" type="button" onclick="refreshReadiness();submitReq('Submitted')">Review & Submit</button>
 </div>
 </section>
 
@@ -449,7 +452,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
   </div>
 </section>
 
-<section id="requests" class="view"><div class="split"><div class="panel"><h2>My Requests</h2><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Status</th><th>Action</th></tr></thead><tbody id="myRequestRows"><tr><td colspan="4" class="small">Open this desk to load your requests.</td></tr></tbody></table></div></div><div class="panel"><h3>Request Timeline</h3><div id="myRequestTimeline" class="timeline"><p class="small">Select a request to see its recorded decisions.</p></div></div></div></section>
+<section id="requests" class="view"><div id="requestDetailPanel" hidden></div><div class="split"><div class="panel"><h2 id="requestsPanelTitle">My Requests</h2><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Status</th><th>Action</th></tr></thead><tbody id="myRequestRows"><tr><td colspan="4" class="small">Open this desk to load your requests.</td></tr></tbody></table></div></div><div class="panel"><h3>Request Timeline</h3><div id="myRequestTimeline" class="timeline"><p class="small">Select a request reference to open the full detail, or use Edit on a draft.</p></div></div></div></section>
 
 <section id="secretary" class="view"><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><div class="panel"><h2>Project Secretary Review Queue</h2><p class="small">Clear a request only while it is at this desk. A return requires a reason.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Entity</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead><tbody id="secretaryQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
 <section id="approval" class="view"><div class="panel"><h2>Chairman Approval Desk</h2><p class="small">Approval records your name, the time, and the request version. You cannot approve a request you created.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Entity</th><th>Amount</th><th>Action</th></tr></thead><tbody id="approvalQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
@@ -457,7 +460,10 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <p class="small">IHPAU sets the NLe amount for 1 USD ($). This rate appears in the Directorate request form and Project Secretary workspace.</p><div class="financeRate"><b data-usd-rate>Loading IHPAU USD rate…</b><div class="small" data-usd-rate-meta></div></div><form id="usdRateEditor" hidden>
 <div class="field"><label for="usdRateInput">NLe per 1 USD ($)</label><input id="usdRateInput" type="number" min="0" step="any" inputmode="decimal" placeholder="Enter current rate" required></div>
 <button id="usdRateSave" class="btn" type="submit">Save USD Rate</button></form>
-<p id="usdRateStatus" class="small" role="status"></p></div><div class="panel"><h2>IHPAU Processing Desk</h2><p class="small">Finance status must be one of the approved steps. Closing is refused while a receipt is still pending or a legal hold is set.</p><div class="tableWrap"><table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Amount</th><th>Action</th></tr></thead><tbody id="ihpauQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
+<p id="usdRateStatus" class="small" role="status"></p>
+<div id="usdRateHistory" class="small"></div></div><div class="panel"><h2>IHPAU Processing Desk</h2><p class="small">Finance status must be one of the approved steps. Closing is refused while a receipt is still pending, a recorded deliverable is unverified, or a legal hold is set.</p>
+<div id="receiptVerifyQueue" class="small">Open this desk to load receipts awaiting verification.</div>
+<div class="tableWrap"><table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Amount</th><th>Action</th></tr></thead><tbody id="ihpauQueue"><tr><td colspan="5" class="small">Open this desk to load the queue.</td></tr></tbody></table></div></div></section>
 
 
 <section id="admin" class="view">
@@ -515,7 +521,8 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="split">
 <div class="panel">
 <h2>Alerts & Action Centre</h2>
-<p class="small">Queries and reminders are routed according to the current workflow stage. Passed stages are excluded from reminder routing.</p>
+<p class="small">Notifications are stored on the server for your role and account. Mark items read when you have acted on them.</p>
+<div style="margin:0 0 12px"><button class="btn secondary" type="button" onclick="markAllNotificationsRead()">Mark all read</button></div>
 <div id="alertsList"></div>
 </div>
 <div class="panel">
@@ -585,7 +592,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div id="archiveDetail" class="panel hide" tabindex="-1"></div>
 </section>
 
-<section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Generated from approved requests — no duplicate manual entry.</div></div><button class="btn" onclick="exportRegister()">Export Excel</button></div><div class="tableWrap"><table><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr><tr><td>DPPI</td><td>Directorate</td><td>Chairman</td><td>Operational</td><td>HMIS Mentorship</td><td>6.2.19</td><td>NLe 95,000</td><td>At IHPAU</td></tr></table></div></div></section>
+<section id="register" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2>Automatic Request Register</h2><div class="small">Live register from submitted requests in the database (not a manual duplicate).</div></div><button class="btn" type="button" onclick="exportRegister()">Export CSV</button></div><div class="tableWrap"><table><thead><tr><th>Implementing Entity</th><th>Requesting Authority</th><th>Approving Authority</th><th>Category</th><th>Details</th><th>Activity Code</th><th>Amount</th><th>Status</th></tr></thead><tbody id="registerRows"><tr><td colspan="8" class="small">Open this page to load the register.</td></tr></tbody></table></div></div></section>
 </main></div>
 <script src="/finance.js"></script>
 <script>
@@ -623,7 +630,8 @@ if(localStorage.getItem('srhrSidebarCollapsed')==='1'&&window.innerWidth>900){
  }
 }
 const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",archive:"Records Archive",reports:"Management Reports",register:"Automatic Register"};
-function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
+function dashboardTitle(){return currentRole()==='IHPAU'?'IHPAU Dashboard':titles.dashboard}
+function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=id==='dashboard'?dashboardTitle():titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 function choose(x){document.getElementById('start').classList.add('hide');document.getElementById('uploadbox').classList.toggle('hide',x!=='upload');document.getElementById('onlinebox').classList.toggle('hide',x!=='online')}
 function extract(){const box=document.getElementById('extract');box.style.display='block';box.innerHTML='<h3>Excel import is not available yet</h3><p class="small">The file was not read and no request was created. Use Fill Request Online so the submission is checked and given a permanent reference.</p>'}
@@ -713,13 +721,6 @@ function updateFinance(id){
 function recordReceipts(id){
  addAlert('Directorate',id,'Accountability update','IHPAU recorded receipt/accountability documents for this request.');
  alert('Receipt/accountability record updated.');
-}
-function exportRegister(){
- const rows=[['Implementing Entity','Requesting Authority','Approving Authority','Category','Details','Activity Code','Amount','Status'],
- ['DPPI','Directorate','Chairman','Operational','HMIS Mentorship','6.2.19','NLe 95,000','At IHPAU']];
- const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
- const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='SRHR-RAMS-Request-Register.csv';a.click();URL.revokeObjectURL(url);
 }
 document.getElementById('role').addEventListener('change',e=>{
  const role=e.target.value;
@@ -947,14 +948,41 @@ const DEFAULT_RBAC={
  'Directorate User':{views:['dashboard','new','concept','requests','alerts','archive'],home:'dashboard',scope:'own_entity'},
  'Project Secretary':{views:['dashboard','secretary','requests','alerts','register','archive','reports'],home:'secretary',scope:'all_requests'},
  'Chairman':{views:['dashboard','approval','alerts','archive','reports'],home:'approval',scope:'approval_queue'},
- 'IHPAU':{views:['dashboard','ihpau','alerts','register','archive','reports'],home:'ihpau',scope:'ihpau_queue'},
+ 'IHPAU':{views:['dashboard','ihpau','alerts','register','archive','reports'],home:'dashboard',scope:'ihpau_queue'},
  'Administrator':{views:Object.keys(VIEW_LABELS),home:'admin',scope:'all'}
 };
+const APPLICANT_VIEWS=new Set(['new','concept','requests']);
+function normalizeRoleRbac(role,def){
+ if(!rbac[role]){rbac[role]=JSON.parse(JSON.stringify(def));return}
+ const saved=rbac[role];
+ if(role==='IHPAU'){
+  saved.views=[...(saved.views||[]).filter(v=>!APPLICANT_VIEWS.has(v)),...def.views.filter(v=>!(saved.views||[]).includes(v))];
+  if(!saved.views.includes(saved.home))saved.home=def.home;
+  saved.scope=def.scope;
+  return;
+ }
+ if(def.views.includes('archive')&&!(saved.views||[]).includes('archive'))saved.views.push('archive');
+ else if(def.views.includes('reports')&&!(saved.views||[]).includes('reports'))saved.views.push('reports');
+}
 let rbac=JSON.parse(localStorage.getItem('srhrRBAC')||'null')||JSON.parse(JSON.stringify(DEFAULT_RBAC));
-for(const [role,def] of Object.entries(DEFAULT_RBAC)){
- if(!rbac[role])rbac[role]=JSON.parse(JSON.stringify(def));
- else if(def.views.includes('archive')&&!(rbac[role].views||[]).includes('archive'))rbac[role].views.push('archive');
- else if(def.views.includes('reports')&&!(rbac[role].views||[]).includes('reports'))rbac[role].views.push('reports');
+for(const [role,def] of Object.entries(DEFAULT_RBAC))normalizeRoleRbac(role,def);
+function canCreateRequests(role){return role==='Directorate User'||role==='Administrator'}
+const DASHBOARD_COPY={
+ default:{title:'Every request. One accountable journey.',sub:'Create, review, approve, process and close project requests from one controlled workspace — with a complete audit trail from Directorate to IHPAU.',recent:'Recent Requests',labels:{total:'IN SCOPE',awaiting:'AWAITING APPROVAL',ihpau:'AT IHPAU',closed:'COMPLETED'}},
+ IHPAU:{title:'Finance & accountability overview',sub:'See approved requests in the IHPAU pipeline, track closures, and open IHPAU Desk to disburse funds, record receipts, and close requests.',recent:'Recent finance activity',labels:{total:'ACTIVE RECORDS',awaiting:'AWAITING CHAIRMAN',ihpau:'AT IHPAU DESK',closed:'CLOSED'}}
+};
+function applyDashboardCopy(role){
+ const copy=role==='IHPAU'?DASHBOARD_COPY.IHPAU:DASHBOARD_COPY.default;
+ const set=(id,text)=>{const el=document.getElementById(id);if(el)el.textContent=text};
+ set('dashHeroTitle',copy.title);set('dashHeroSub',copy.sub);set('dashRecentTitle',copy.recent);
+ set('dashLabelTotal',copy.labels.total);set('dashLabelAwaiting',copy.labels.awaiting);
+ set('dashLabelIhpau',copy.labels.ihpau);set('dashLabelClosed',copy.labels.closed);
+ const ihpauHero=document.getElementById('dashHeroIhpau');if(ihpauHero)ihpauHero.hidden=role!=='IHPAU';
+ const cards=document.querySelector('#dashboard .cards');
+ if(cards){
+  const order=role==='IHPAU'?{ihpau:1,total:2,awaiting:3,closed:4}:{total:1,awaiting:2,ihpau:3,closed:4};
+  cards.querySelectorAll('[data-dash-card]').forEach(el=>{el.style.order=order[el.dataset.dashCard]||0});
+ }
 }
 function saveRBAC(){localStorage.setItem('srhrRBAC',JSON.stringify(rbac));applyRBAC();audit('Interface permissions updated','Role-based menu/dashboard configuration changed.')}
 function currentRole(){return document.getElementById('role')?.value||'Directorate User'}
@@ -962,10 +990,16 @@ function allowedViews(role){return (rbac[role]||DEFAULT_RBAC[role]||{views:[]}).
 function applyRBAC(){
  const role=currentRole(),allowed=allowedViews(role);
  document.querySelectorAll('.nav button[data-v]').forEach(b=>{b.style.display=allowed.includes(b.dataset.v)?'flex':'none'});
+ document.querySelectorAll('.applicant-only').forEach(el=>{el.hidden=!canCreateRequests(role)});
+ applyDashboardCopy(role);
  document.querySelectorAll('.view').forEach(v=>{if(!allowed.includes(v.id)&&v.classList.contains('active'))v.classList.remove('active')});
  const active=document.querySelector('.view.active');
  if(!active||!allowed.includes(active.id)){show((rbac[role]||DEFAULT_RBAC[role]).home)}
  const title=document.querySelector('.top h1'); if(title) title.dataset.role=role;
+}
+function mapSessionRole(role){
+ if(role==='IHPAU / Finance'||role==='IHPAU Finance')return 'IHPAU';
+ return role;
 }
 const _showRBAC=show;
 show=function(v){
@@ -991,6 +1025,7 @@ function permissionDesigner(){
  <div style="margin-top:14px"><button class="btn secondary" onclick="resetRBAC()">Restore Recommended Defaults</button></div>`;
 }
 function toggleRoleView(role,v,on){
+ if(role==='IHPAU'&&on&&APPLICANT_VIEWS.has(v)){alert('IHPAU staff approve, disburse, and close funded requests — they do not create or submit new requests.');return}
  rbac[role]=rbac[role]||JSON.parse(JSON.stringify(DEFAULT_RBAC[role]));
  let s=new Set(rbac[role].views);on?s.add(v):s.delete(v);rbac[role].views=[...s];
  if(!rbac[role].views.includes(rbac[role].home))rbac[role].home=rbac[role].views[0]||'dashboard';
@@ -1036,8 +1071,11 @@ async function login(){
 function enterApp(a){
  document.getElementById('loginScreen').style.display='none';
  document.getElementById('secureApp').style.display='block';
- const rs=document.getElementById('role');rs.value=a.role;rs.disabled=a.role!=='Administrator';
- applyRBAC();_showRBAC((rbac[a.role]||DEFAULT_RBAC[a.role]).home);
+ const uiRole=mapSessionRole(a.role);
+ const rs=document.getElementById('role');
+ if([...rs.options].some(o=>o.value===uiRole))rs.value=uiRole;
+ rs.disabled=uiRole!=='Administrator';
+ applyRBAC();_showRBAC((rbac[uiRole]||DEFAULT_RBAC[uiRole]).home);
  startSharedRate();
  if(typeof loadDashboard==='function')loadDashboard();
  if(a.mustChange||a.must_change)setTimeout(()=>changeOwnPassword(a.id,true),250);
