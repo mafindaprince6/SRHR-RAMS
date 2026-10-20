@@ -874,7 +874,8 @@ async function handleArchive(req,env,u,p,url){
       disbursements:disbursements?.results||[],
       financials,
       events:events.results,
-      audit:auditRows.results
+      audit:auditRows.results,
+      suggestions:await metadataSuggestions(env,request)
     });
   }
 
@@ -1056,6 +1057,55 @@ async function resolveRetentionCategory(env,request){
   if(existing)return existing;
   if(request.request_type==='Procurement')return 'procurement';
   return 'operational';
+}
+async function metadataSuggestions(env,request){
+  const suggestions=[];
+  const current=String(request.implementing_entity||'').trim();
+  if(current){
+    const {results}=await env.DB.prepare('SELECT name,acronym FROM entities WHERE active=1').all();
+    const named=results.find(row=>String(row.name||'').toLowerCase()===current.toLowerCase());
+    const acronym=results.find(row=>String(row.acronym||'').toLowerCase()===current.toLowerCase());
+    if(!named&&acronym&&acronym.name!==current){
+      suggestions.push({code:'entity_acronym',field:'implementing_entity',current,value:acronym.name,message:`${current} matches the acronym of an active entity. Confirm to store the official name.`});
+    }else if(!named&&!acronym){
+      suggestions.push({code:'unrecognised_entity',field:'implementing_entity',current,value:null,message:'This implementing entity is not on the active list. No replacement is suggested.'});
+    }
+  }
+  if(request.status==='Closed'&&!String(request.retention_category||'').trim()&&await retentionReady(env)){
+    const category=await resolveRetentionCategory(env,request);
+    const policy=await env.DB.prepare('SELECT category FROM retention_policies WHERE category=?').bind(category).first();
+    if(policy){
+      suggestions.push({code:'retention_category',field:'retention_category',current:'',value:category,message:`No retention category is stored. The existing ${request.request_type==='Procurement'?'procurement':'operational'} rule uses ${category}.`});
+    }
+  }
+  if(await extractsReady(env)){
+    const {results}=await env.DB.prepare('SELECT id FROM document_extracts WHERE request_id=? AND verified=0').bind(request.id).all();
+    for(const row of results){
+      suggestions.push({code:'confirm_extract',field:'document_extract',current:'unverified',value:row.id,message:'Searchable text is stored and has not been confirmed. Confirming it does not change the request amount.'});
+    }
+  }
+  return suggestions;
+}
+async function applyMetadataSuggestion(env,u,request,body){
+  const note=String(body.note||'').trim();
+  if(!note)return {error:'reason_required',message:'A written reason is required.',status:400};
+  const suggestions=await metadataSuggestions(env,request);
+  const match=suggestions.find(item=>item.code===body.code&&item.value!=null&&String(item.value)===String(body.value??''));
+  if(!match)return {error:'suggestion_rejected',message:'That suggestion is not available for this record.',status:400};
+  const now=new Date().toISOString();
+  if(match.code==='entity_acronym'){
+    await env.DB.prepare('UPDATE requests SET implementing_entity=?,updated_at=? WHERE id=?').bind(match.value,now,request.id).run();
+  }else if(match.code==='retention_category'){
+    const until=request.closed_at?await computeRetentionUntil(env,match.value,request.closed_at):null;
+    await env.DB.prepare('UPDATE requests SET retention_category=?,retention_until=COALESCE(retention_until,?),updated_at=? WHERE id=?').bind(match.value,until,now,request.id).run();
+  }else if(match.code==='confirm_extract'){
+    await env.DB.prepare('UPDATE document_extracts SET verified=1 WHERE id=? AND request_id=? AND verified=0').bind(match.value,request.id).run();
+  }else{
+    return {error:'suggestion_rejected',message:'That suggestion cannot be applied.',status:400};
+  }
+  await audit(env,u,'METADATA_SUGGESTION_APPLIED',request.id,`${match.field}: ${match.current||'empty'} > ${match.value}. ${note}`);
+  const amount=await env.DB.prepare('SELECT amount_nle,approved_amount_nle FROM requests WHERE id=?').bind(request.id).first();
+  return {ok:true,field:match.field,value:match.value,amount_nle:amount?.amount_nle,approved_amount_nle:amount?.approved_amount_nle};
 }
 async function computeRetentionUntil(env,category,fromIso){
   let row=await env.DB.prepare('SELECT retention_years FROM retention_policies WHERE category=?').bind(category).first();
@@ -1296,6 +1346,24 @@ async function runAuditIntegrity(env){
   for(const row of orphanAudit.results){
     issues.push({code:'orphan_audit',message:'Audit entry references a request that no longer exists.',audit_id:row.id,request_id:row.request_id,action:row.action});
   }
+  try{
+    const duplicates=await env.DB.prepare(`SELECT checksum_sha256 FROM documents WHERE checksum_sha256 IS NOT NULL AND superseded_at IS NULL GROUP BY checksum_sha256 HAVING COUNT(*)>1 LIMIT 20`).all();
+    for(const row of duplicates.results){
+      issues.push({code:'duplicate_checksum',message:'The same file checksum is stored on more than one current document.',checksum:row.checksum_sha256});
+    }
+  }catch{/* checksum column is part of the archive migration */}
+  try{
+    const missingRetention=await env.DB.prepare(`SELECT id,request_number FROM requests WHERE status='Closed' AND (retention_until IS NULL OR retention_until='') LIMIT 20`).all();
+    for(const row of missingRetention.results){
+      issues.push({code:'closed_without_retention',message:'A closed record has no retention date.',request_id:row.id,request_number:row.request_number});
+    }
+  }catch{/* retention columns are optional until migration 004 */}
+  try{
+    const emptyFiles=await env.DB.prepare(`SELECT id,request_id,file_name FROM documents WHERE superseded_at IS NULL AND (storage_key IS NULL OR storage_key='') AND (inline_body IS NULL OR inline_body='') LIMIT 20`).all();
+    for(const row of emptyFiles.results){
+      issues.push({code:'document_without_file',message:'Document metadata has no stored file.',document_id:row.id,request_id:row.request_id,file_name:row.file_name});
+    }
+  }catch{/* inline body is part of migration 006 */}
   return {ok:issues.length===0,checked_at:new Date().toISOString(),issues};
 }
 
@@ -2817,6 +2885,17 @@ export default {
       await env.DB.prepare('INSERT INTO document_extracts(id,document_id,request_id,extracted_text,source,verified,created_by,created_at) VALUES(?,?,?,?,?,0,?,?)').bind(id,doc.id,doc.request_id,text,String(b.source||'manual').slice(0,80),u.id,now).run();
       await audit(env,u,'DOCUMENT_TEXT_INDEXED',doc.request_id,`${doc.id}; unverified extract`);
       return J({ok:true,id,verified:false,message:'Stored as unverified text. It is searchable and is not financial evidence.'},201);
+    }
+
+    const suggestionApply=p.match(/^\/api\/archive\/([^/]+)\/suggestions$/);
+    if(suggestionApply&&req.method==='POST'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const request=await visibleRequest(env,u,decodeURIComponent(suggestionApply[1]));
+      if(!request)return J({error:'not_found'},404);
+      const b=await req.json().catch(()=>({}));
+      const applied=await applyMetadataSuggestion(env,u,request,b);
+      if(applied.error)return J({error:applied.error,message:applied.message},applied.status||400);
+      return J(applied);
     }
 
     if(p==='/api/admin/documents/duplicates'&&req.method==='GET'){

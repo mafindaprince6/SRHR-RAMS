@@ -118,6 +118,7 @@ function renderArchiveDetail(){
     <div class="archiveHead"><div><div class="archiveRef">${esc(request.request_number)}</div><h2 style="margin:4px 0">${esc(request.title)}</h2><div class="small">${esc(request.implementing_entity||'')} · ${esc(request.current_stage||'')}</div></div><div class="noPrint" style="display:flex;gap:8px;align-items:center">${archiveBadge(request.status)}<button type="button" class="btn secondary" id="archivePrint">Print</button></div></div>
     <div class="archiveAmounts"><div><span class="small">Requested</span><strong>${archiveMoney(request.amount_nle)}</strong></div><div><span class="small">Approved</span><strong>${request.approved_amount_nle==null?'Not approved yet':archiveMoney(request.approved_amount_nle)}</strong></div><div><span class="small">Disbursed</span><strong>${archiveMoney(finance.disbursed||0)}</strong></div><div><span class="small">Verified receipts</span><strong>${archiveMoney(finance.verified_receipts||0)}</strong></div></div>
     ${balanceLine}
+    <div class="archiveSection" id="archiveSuggestions"><h3>Catalogue suggestions</h3>${suggestionBlock(data.suggestions||[])}</div>
     <p>${esc(request.details||'')}</p>
     <p class="small">${[request.requesting_authority&&`Officer: ${request.requesting_authority}`,request.fiscal_year&&`Year: ${request.fiscal_year}`,request.submitted_at&&`Submitted ${archiveWhen(request.submitted_at)}`,request.approved_at&&`Approved ${archiveWhen(request.approved_at)}`].filter(Boolean).map(esc).join(' · ')||''}</p>
     <div class="archiveSection"><h3>Budget</h3>${budget}</div>
@@ -136,7 +137,28 @@ function renderArchiveDetail(){
   box.querySelectorAll('[data-preview]').forEach(button=>button.addEventListener('click',()=>window.open('/api/documents/'+encodeURIComponent(button.dataset.preview)+'?preview=1','_blank','noopener')));
   box.querySelector('#archiveUpload')?.addEventListener('submit',uploadArchiveDocument);
   box.querySelector('#archiveExtract')?.addEventListener('submit',saveDocumentExtract);
+  box.querySelectorAll('[data-suggest]').forEach(button=>button.addEventListener('click',()=>applyArchiveSuggestion(button.dataset.suggest,button.dataset.value)));
   box.focus();
+}
+
+function suggestionBlock(suggestions){
+  const admin=document.getElementById('role')?.value==='Administrator';
+  if(!suggestions.length)return '<p class="small">No catalogue suggestions for this record. Amounts are not guessed.</p>';
+  return suggestions.map(item=>`<p>${esc(item.message)}</p>${item.value!=null&&admin?`<button type="button" class="btn secondary" data-suggest="${esc(item.code)}" data-value="${esc(item.value)}">Apply suggestion</button>`:'<p class="small">Shown for review only. An administrator confirms it before anything is stored.</p>'}`).join('');
+}
+
+async function applyArchiveSuggestion(code,value){
+  const note=typeof reasonFor==='function'?reasonFor('apply this suggestion'):'';
+  if(!note)return;
+  const id=archiveDetailData?.request?.id;
+  if(!id)return;
+  try{
+    await archiveApi('/api/archive/'+encodeURIComponent(id)+'/suggestions',{method:'POST',body:JSON.stringify({code,value,note})});
+    await openArchive(id);
+  }catch(error){
+    const state=document.getElementById('archiveState');
+    if(state)state.textContent=error.message;
+  }
 }
 
 function closeArchiveDetail(){
