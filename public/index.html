@@ -479,7 +479,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="panel">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
 <div><div class="label">SYSTEM ADMINISTRATION</div><h2 style="margin:5px 0">User & Notification Control</h2>
-<p class="small">Choose how each workflow user receives SRHR-RAMS alerts. In-App works immediately in this prototype. Email and WhatsApp can be previewed/tested here and become automatic once production provider credentials are connected.</p></div>
+<p class="small">Live accounts are managed under User Accounts. In-app alerts are stored when a desk acts. Email and WhatsApp are not configured, so the table below is only a local preview and does not send messages.</p></div>
 <div style="display:flex;gap:8px"><button class="btn secondary" onclick="adminTool('audit')">Audit Log <span id="auditCount" class="badge">0</span></button><button class="btn" onclick="addAdminUser()">+ Add User</button></div></div>
 <div style="overflow:auto"><table><thead><tr><th>User</th><th>Role / Stage</th><th>Directorate / Team</th><th>Email</th><th>WhatsApp</th><th>Channels</th><th>Test</th></tr></thead>
 <tbody id="userConfigBody"></tbody></table></div>
@@ -496,13 +496,13 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <h2>Supreme Admin Console</h2>
 <p class="small">Privileged controls change system behaviour without altering source code. Sensitive actions are recorded in the administrator audit log.</p>
 <div class="actions" style="grid-template-columns:repeat(3,1fr)">
-<div class="action" onclick="adminTool('workflow')"><b>Workflow Designer</b><span class="small">Reorder stages, rename stages and change responsible roles.</span></div>
+<div class="action" onclick="adminTool('workflow')"><b>Workflow</b><span class="small">The four desks are fixed on the server. This screen explains them.</span></div>
 <div class="action" onclick="adminTool('accounts')"><b>User Accounts & Passwords</b><span class="small">Create accounts, reset passwords, lock/unlock users and assign roles.</span></div><div class="action" onclick="adminTool('permissions')"><b>Interface & Permissions</b><span class="small">Control menus, dashboards, actions and data visibility for every role.</span></div>
-<div class="action" onclick="adminTool('requests')"><b>Request Intervention</b><span class="small">Reassign, place on hold, reopen or correct workflow placement.</span></div>
-<div class="action" onclick="adminTool('notifications')"><b>Notification Rules</b><span class="small">Channels, escalation windows, reminder limits and recipients.</span></div>
+<div class="action" onclick="adminTool('requests')"><b>Legal hold</b><span class="small">Place or release a legal hold. Requests cannot be reassigned or reopened from here.</span></div>
+<div class="action" onclick="adminTool('notifications')"><b>Reminder values</b><span class="small">Save reminder hours on the server. Email and SMS are not sent.</span></div>
 <div class="action" onclick="adminTool('entities')"><b>Directorates & Entities</b><span class="small">Add, edit, activate/deactivate and assign focal persons.</span></div>
 <div class="action" onclick="adminTool('templates')"><b>Forms & Templates</b><span class="small">Manage request, concept-note and document template versions.</span></div>
-<div class="action" onclick="adminTool('finance')"><b>Finance Configuration</b><span class="small">Currencies, procurement methods, PIM categories and reporting years.</span></div>
+<div class="action" onclick="adminTool('finance')"><b>Finance configuration</b><span class="small">Set the request-number prefix. Amounts stay in NLe.</span></div>
 <div class="action" onclick="adminTool('system')"><b>System Settings</b><span class="small">Request numbering, session rules, labels and maintenance controls.</span></div>
 <div class="action" onclick="adminTool('records')"><b>Records & Legal Hold</b><span class="small">Place or release legal holds and update retention metadata with audit.</span></div>
 <div class="action" onclick="adminTool('audit')"><b>Audit & Recovery</b><span class="small">Review privileged actions, export logs and restore configuration snapshots.</span></div>
@@ -921,9 +921,6 @@ async function loadServerAuditLog(){
   body.innerHTML=rows.length?rows.map(a=>`<tr><td>${esc(a.created_at||'')}</td><td>${esc(a.actor||'System')}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.details||'')}</td></tr>`).join(''):'<tr><td colspan="4">No server audit entries yet.</td></tr>';
  }catch(e){body.innerHTML='<tr><td colspan="4">Could not load server audit log.</td></tr>'}
 }
-function moveStage(i,d){let n=i+d;if(n<0||n>=workflowConfig.length)return;[workflowConfig[i],workflowConfig[n]]=[workflowConfig[n],workflowConfig[i]];persistConfig();audit('Workflow reordered',workflowConfig.join(' > '));adminTool('workflow')}
-function renameStage(i){let n=prompt('New stage name:',workflowConfig[i]);if(!n)return;let old=workflowConfig[i];workflowConfig[i]=n;persistConfig();audit('Workflow stage renamed',`${old} > ${n}`);adminTool('workflow')}
-function addStage(){let n=prompt('New workflow stage name:');if(!n)return;workflowConfig.push(n);persistConfig();audit('Workflow stage added',n);adminTool('workflow')}
 async function interveneRequest(){
  const id=document.getElementById('adminReq').value.trim();
  const act=document.getElementById('adminReqAction').value;
@@ -1102,18 +1099,12 @@ show=function(v){
 function permissionDesigner(){
  const w=document.getElementById('adminWorkbench');if(!w)return;
  w.innerHTML=`<h3>Role Interface Designer</h3>
- <p class="small">All users share one SRHR-RAMS shell. The Administrator decides which menus, workspaces and dashboards each role can see. Hidden areas are also blocked by the permission engine, not merely removed from the menu.</p>
+ <p class="small">These checkboxes hide menus in this browser only. The server still decides which actions and records each signed-in role can use. Server grants are under Server Permissions &amp; Health.</p>
  <div style="overflow:auto"><table><thead><tr><th>Interface Area</th>${RBAC_ROLES.map(r=>`<th>${esc(r)}</th>`).join('')}</tr></thead><tbody>
  ${Object.entries(VIEW_LABELS).map(([v,label])=>`<tr><td><b>${label}</b></td>${RBAC_ROLES.map(r=>`<td><input type="checkbox" ${allowedViews(r).includes(v)?'checked':''} ${r==='Administrator'&&v==='admin'?'disabled':''} onchange="toggleRoleView('${r}','${v}',this.checked)"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
  <h3>Default Landing Dashboard</h3>
  <div class="formgrid">${RBAC_ROLES.map(r=>`<div class="field"><label>${r}</label><select onchange="setRoleHome('${r}',this.value)">${Object.entries(VIEW_LABELS).filter(([v])=>allowedViews(r).includes(v)).map(([v,l])=>`<option value="${v}" ${(rbac[r]||{}).home===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
- <h3>Data Visibility Scope</h3>
- <div class="formgrid">${RBAC_ROLES.map(r=>`<div class="field"><label>${r}</label><select onchange="setRoleScope('${r}',this.value)">
- <option value="own_entity" ${(rbac[r]||{}).scope==='own_entity'?'selected':''}>Own Directorate / Entity only</option>
- <option value="approval_queue" ${(rbac[r]||{}).scope==='approval_queue'?'selected':''}>Assigned approval queue only</option>
- <option value="ihpau_queue" ${(rbac[r]||{}).scope==='ihpau_queue'?'selected':''}>IHPAU processing queue only</option>
- <option value="all_requests" ${(rbac[r]||{}).scope==='all_requests'?'selected':''}>All requests</option>
- <option value="all" ${(rbac[r]||{}).scope==='all'?'selected':''}>Full system</option></select></div>`).join('')}</div>
+ <p class="small">Record visibility stays with the signed-in role: Directorate sees its own drafts, other desks see submitted records, and Administrator sees every record.</p>
  <div style="margin-top:14px"><button class="btn secondary" onclick="resetRBAC()">Restore Recommended Defaults</button></div>`;
 }
 function toggleRoleView(role,v,on){
