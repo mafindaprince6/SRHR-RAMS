@@ -123,7 +123,8 @@ function renderArchiveDetail(){
     <div class="archiveSection"><h3>Budget</h3>${budget}</div>
     <div class="archiveSection"><h3>Disbursements</h3>${disbursements}</div>
     <div class="archiveSection"><h3>Receipts</h3>${receipts}</div>
-    <div class="archiveSection"><h3>Documents</h3>${documents}${uploadForm()}</div>
+    <div class="archiveSection"><h3>Documents</h3>${documents}${uploadForm()}
+    <form id="archiveExtract" class="archiveTools noPrint"><div class="field"><label for="extractDoc">Document</label><select id="extractDoc">${data.documents.map(doc=>`<option value="${esc(doc.id)}">${esc(doc.file_name)}</option>`).join('')}</select></div><div class="field full"><label for="extractText">Unverified text from the scan</label><textarea id="extractText" placeholder="Type or paste text read from the document"></textarea></div><button class="btn secondary" type="submit">Save searchable text</button><p id="extractState" class="small" role="status"></p></form></div>
     <div class="archiveSection"><h3>What happened</h3>${timeline}</div>
     <details class="archiveMore"><summary>Activity log and record keeping</summary>
       <div class="archiveSection">${audit}</div>
@@ -134,6 +135,7 @@ function renderArchiveDetail(){
   box.querySelectorAll('[data-doc]').forEach(button=>button.addEventListener('click',()=>downloadArchiveDocument(button)));
   box.querySelectorAll('[data-preview]').forEach(button=>button.addEventListener('click',()=>window.open('/api/documents/'+encodeURIComponent(button.dataset.preview)+'?preview=1','_blank','noopener')));
   box.querySelector('#archiveUpload')?.addEventListener('submit',uploadArchiveDocument);
+  box.querySelector('#archiveExtract')?.addEventListener('submit',saveDocumentExtract);
   box.focus();
 }
 
@@ -168,6 +170,19 @@ async function downloadArchiveDocument(button){
     link.href=url;link.download=button.dataset.name||'document';link.click();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
   }catch(error){if(state)state.textContent=error.message}
+}
+
+async function saveDocumentExtract(event){
+  event.preventDefault();
+  const state=document.getElementById('extractState');
+  const id=document.getElementById('extractDoc')?.value;
+  const text=document.getElementById('extractText')?.value.trim();
+  if(!id||!text){if(state)state.textContent='Choose a document and enter the text.';return}
+  state.textContent='Saving searchable text…';
+  try{
+    await archiveApi('/api/documents/'+encodeURIComponent(id)+'/extract',{method:'POST',body:JSON.stringify({text,source:'operator transcription'})});
+    state.textContent='Saved as unverified searchable text. It does not change the financial record.';
+  }catch(error){state.textContent=error.message}
 }
 
 async function uploadArchiveDocument(event){

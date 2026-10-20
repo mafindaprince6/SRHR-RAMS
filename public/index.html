@@ -497,6 +497,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="action" onclick="adminTool('system')"><b>System Settings</b><span class="small">Request numbering, session rules, labels and maintenance controls.</span></div>
 <div class="action" onclick="adminTool('records')"><b>Records & Legal Hold</b><span class="small">Place or release legal holds and update retention metadata with audit.</span></div>
 <div class="action" onclick="adminTool('audit')"><b>Audit & Recovery</b><span class="small">Review privileged actions, export logs and restore configuration snapshots.</span></div>
+<div class="action" onclick="adminTool('governance')"><b>Server Permissions & Health</b><span class="small">Live permission grants, duplicate files, legacy import, and system health.</span></div>
 </div>
 </div>
 
@@ -834,12 +835,63 @@ function adminTool(type){
   <button class="btn" type="button" style="margin-top:12px" onclick="applyRecordControl()">Apply record control</button>
   <p id="recordControlState" class="small" role="status"></p>
   <p class="small">See <code>docs/RECOVERY.md</code> for backup and integrity guidance.</p>`;
+ } else if(type==='governance'){
+  w.innerHTML=`<h3>Server permissions and health</h3><p class="small">These controls call the server. Menu checkboxes in Interface & Permissions only hide screens in this browser.</p>
+  <div id="governanceState" class="small" role="status">Loading…</div>
+  <div id="serverPermissionList" style="margin:12px 0"></div>
+  <div class="formgrid"><div class="field"><label for="permRole">Role</label><input id="permRole" value="IHPAU"></div>
+  <div class="field"><label for="permName">Permission</label><input id="permName" value="close_requests"></div>
+  <div class="field full"><label for="permNote">Reason</label><textarea id="permNote" placeholder="Why this grant or revocation is needed"></textarea></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="changeServerPermission(true)">Grant</button><button class="btn secondary" type="button" onclick="changeServerPermission(false)">Revoke</button><button class="btn secondary" type="button" onclick="loadGovernance()">Refresh</button></div>
+  <h3>Legacy import</h3><p class="small">Creates drafts only. Review each record before submission.</p>
+  <div class="formgrid"><div class="field"><label for="legacyTitle">Title</label><input id="legacyTitle"></div><div class="field"><label for="legacyEntity">Implementing entity</label><input id="legacyEntity" value="DPPI"></div></div>
+  <button class="btn secondary" type="button" onclick="importLegacyRecord()">Import as draft</button>`;
+  loadGovernance();
  } else if(type==='audit'){
   w.innerHTML=`<h3>Administrator Audit & Recovery</h3><p class="small">Privileged changes are append-only. Server audit entries appear below when you are signed in as Administrator.</p>
   <div id="auditIntegrityState" class="small" role="status"></div>
   <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" type="button" onclick="runAuditIntegrityCheck()">Check integrity</button><button class="btn secondary" type="button" onclick="loadServerAuditLog()">Load server audit</button><button class="btn secondary" onclick="exportAudit()">Export local admin log</button> <button class="btn secondary" onclick="snapshotConfig()">Create configuration snapshot</button></div>
   <div style="overflow:auto"><table><thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Detail</th></tr></thead><tbody id="serverAuditBody"><tr><td colspan="4">Load the server audit log to review privileged API actions.</td></tr></tbody></table></div>`;
  }
+}
+async function loadGovernance(){
+ const state=document.getElementById('governanceState');
+ const list=document.getElementById('serverPermissionList');
+ if(!state||!list)return;
+ try{
+  const [healthRes,permissionRes,duplicateRes]=await Promise.all([
+   fetch('/api/admin/health',{credentials:'same-origin'}),
+   fetch('/api/admin/permissions',{credentials:'same-origin'}),
+   fetch('/api/admin/documents/duplicates',{credentials:'same-origin'})
+  ]);
+  const health=await healthRes.json();
+  const permissions=await permissionRes.json();
+  const duplicates=await duplicateRes.json();
+  if(!healthRes.ok)throw new Error(health.message||health.error||'Health check failed');
+  state.textContent=`Database ${health.database?'reachable':'unavailable'}. Document storage ${health.document_storage?'configured':'not configured'}. Email ${health.email_delivery}. Integrity ${health.integrity?.ok?'clear':'needs review'}.`;
+  const rows=permissions.permissions||[];
+  const copies=duplicates.duplicates||[];
+  list.innerHTML=(rows.length?`<table><tr><th>Role</th><th>Permission</th></tr>${rows.map(row=>`<tr><td>${esc(row.role)}</td><td>${esc(row.permission)}</td></tr>`).join('')}</table>`:'<p class="small">Server permissions are not available until migration 008 is applied.</p>')+(copies.length?`<p class="small">${copies.length} duplicate file checksum group${copies.length===1?'':'s'}.</p>`:'<p class="small">No duplicate file checksums.</p>');
+ }catch(error){state.textContent=error.message}
+}
+async function changeServerPermission(grant){
+ const role=document.getElementById('permRole')?.value.trim();
+ const permission=document.getElementById('permName')?.value.trim();
+ const note=document.getElementById('permNote')?.value.trim();
+ if(!role||!permission||!note){alert('Role, permission, and reason are required.');return}
+ const response=await fetch('/api/admin/permissions',{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role,permission,grant,note})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){alert(data.message||data.error||'Permission change failed');return}
+ await loadGovernance();
+}
+async function importLegacyRecord(){
+ const title=document.getElementById('legacyTitle')?.value.trim();
+ const implementing_entity=document.getElementById('legacyEntity')?.value.trim();
+ if(!title||!implementing_entity){alert('Title and implementing entity are required.');return}
+ const response=await fetch('/api/admin/legacy-import',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({records:[{title,implementing_entity,amount_nle:0}]})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){alert(data.message||data.error||'Import failed');return}
+ alert(`Draft created: ${data.created?.[0]?.request_number||'saved'}`);
 }
 async function loadServerAuditLog(){
  const body=document.getElementById('serverAuditBody'); if(!body)return;
