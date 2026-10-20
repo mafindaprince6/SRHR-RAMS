@@ -1049,10 +1049,16 @@ async function buildManagementReport(env,u,url){
       FROM requests WHERE ${clause} AND retention_until IS NOT NULL AND retention_until<=date('now') AND IFNULL(archival_status,'active')='active' AND legal_hold=0
       ORDER BY retention_until LIMIT 100`).bind(...args).all();
   }
+  const backlog=await env.DB.prepare(`
+    SELECT
+      SUM(CASE WHEN status='Submitted' AND current_stage='Project Secretary' THEN 1 ELSE 0 END) AS secretary,
+      SUM(CASE WHEN status='Awaiting Approval' AND current_stage='Chairman' THEN 1 ELSE 0 END) AS chairman,
+      SUM(CASE WHEN current_stage='IHPAU / Finance' AND status!='Closed' THEN 1 ELSE 0 END) AS ihpau
+    FROM requests WHERE ${clause}`).bind(...args).first();
   return {
     generated_at:new Date().toISOString(),
     filters:{fiscal_year:fiscal||null},
-    summary,
+    summary:{...summary,secretary_queue:Number(backlog?.secretary||0),chairman_queue:Number(backlog?.chairman||0),ihpau_queue:Number(backlog?.ihpau||0)},
     by_status:byStatus.results,
     by_entity:byEntity.results,
     retention_review:retentionReview.results
@@ -1109,6 +1115,18 @@ async function runAuditIntegrity(env){
     issues.push({code:'orphan_audit',message:'Audit entry references a request that no longer exists.',audit_id:row.id,request_id:row.request_id,action:row.action});
   }
   return {ok:issues.length===0,checked_at:new Date().toISOString(),issues};
+}
+
+async function permissionsReady(env){
+  try{
+    await env.DB.prepare('SELECT permission FROM role_permissions LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+async function hasPermission(env,user,permission){
+  if(!await permissionsReady(env))return true;
+  const row=await env.DB.prepare('SELECT 1 AS ok FROM role_permissions WHERE role=? AND permission=?').bind(user.role,permission).first();
+  return !!row;
 }
 
 function transitionRole(user,roles,note){
@@ -1406,6 +1424,7 @@ export default {
       )
       .run();
 
+      await env.DB.prepare('UPDATE users SET last_login_at=? WHERE id=?').bind(new Date().toISOString(),u.id).run().catch(()=>{});
 
       await audit(
         env,
@@ -1728,6 +1747,7 @@ export default {
             'Administrator'
           ]
         )
+        || !(await hasPermission(env,u,'create_requests'))
       ){
 
         return J(
@@ -2406,39 +2426,75 @@ export default {
       req.method==='GET'
     ){
 
-      if(
-        u.role!==
-        'Administrator'
-      ){
-
-        return J(
-          {
-            error:'forbidden'
-          },
-          403
-        );
-
+      if(u.role!=='Administrator' || !(await hasPermission(env,u,'configure_system'))){
+        return J({error:'forbidden'},403);
       }
+      const where=['1=1'];
+      const args=[];
+      const action=url.searchParams.get('action');
+      const actor=url.searchParams.get('actor');
+      const requestId=url.searchParams.get('request_id');
+      const from=url.searchParams.get('from');
+      const to=url.searchParams.get('to');
+      if(action){where.push('a.action=?');args.push(action)}
+      if(actor){where.push('u.name LIKE ?');args.push(`%${actor}%`)}
+      if(requestId){where.push('a.request_id=?');args.push(requestId)}
+      if(from){where.push('a.created_at>=?');args.push(from)}
+      if(to){where.push('a.created_at<=?');args.push(to)}
+      let st=env.DB.prepare(`
+        SELECT a.*, u.name actor
+        FROM audit_log a
+        LEFT JOIN users u ON u.id=a.actor_user_id
+        WHERE ${where.join(' AND ')}
+        ORDER BY a.created_at DESC
+        LIMIT 300
+      `);
+      if(args.length)st=st.bind(...args);
+      return J((await st.all()).results);
+    }
 
+    if(p==='/api/admin/permissions'&&req.method==='GET'){
+      if(u.role!=='Administrator')return J({error:'forbidden'},403);
+      if(!await permissionsReady(env))return J({error:'migration_required',message:'Apply migrations/008_admin.sql first.'},503);
+      const {results}=await env.DB.prepare('SELECT role,permission FROM role_permissions ORDER BY role,permission').all();
+      return J({permissions:results});
+    }
 
-      return J(
-        (
-          await env.DB.prepare(
-            `
-            SELECT
-              a.*,
-              u.name actor
-            FROM audit_log a
-            LEFT JOIN users u
-              ON u.id=a.actor_user_id
-            ORDER BY a.created_at DESC
-            LIMIT 300
-            `
-          )
-          .all()
-        ).results
-      );
+    if(p==='/api/admin/permissions'&&req.method==='PUT'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const b=await req.json().catch(()=>({}));
+      const note=String(b.note||'').trim();
+      if(!note)return J({error:'reason_required',message:'A reason is required to change permissions.'},400);
+      const role=String(b.role||'');
+      const permission=String(b.permission||'');
+      const grant=b.grant!==false;
+      if(!role||!permission)return J({error:'missing_fields'},400);
+      if(role==='Administrator'&&permission==='configure_system'&&!grant){
+        return J({error:'protected_permission',message:'Administrator system configuration cannot be removed.'},409);
+      }
+      if(grant){
+        await env.DB.prepare('INSERT OR IGNORE INTO role_permissions(role,permission) VALUES(?,?)').bind(role,permission).run();
+      }else{
+        await env.DB.prepare('DELETE FROM role_permissions WHERE role=? AND permission=?').bind(role,permission).run();
+      }
+      await audit(env,u,'PERMISSION_CHANGED','',`${role} ${permission} ${grant?'granted':'revoked'}. ${note}`);
+      return J({ok:true});
+    }
 
+    if(p==='/api/admin/health'&&req.method==='GET'){
+      if(u.role!=='Administrator')return J({error:'forbidden'},403);
+      let database=false;
+      try{await env.DB.prepare('SELECT 1 AS ok').first();database=true}catch{database=false}
+      const integrity=await runAuditIntegrity(env);
+      return J({
+        ok:database,
+        database,
+        document_storage:!!env.DOCUMENTS,
+        notifications:'in_app',
+        email_delivery:'not_configured',
+        integrity,
+        checked_at:new Date().toISOString()
+      });
     }
 
 
