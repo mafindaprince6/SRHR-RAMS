@@ -389,4 +389,7 @@ async function decideReceipt(id,decision){
   }catch(error){alert(error.message)}
 }
 window.loadFinanceDesk=loadFinanceDesk;
+if(document.getElementById('secureApp')?.style.display==='block'&&document.getElementById('dashboard')?.classList.contains('active')){
+  loadDashboard();
+}
 window.loadDashboard=loadDashboard;
