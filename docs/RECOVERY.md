@@ -25,6 +25,9 @@ Administrators can run **Audit & Recovery → Check integrity** (or `GET /api/ad
 - Submitted requests with no workflow history
 - Legal holds without a matching `RECORD_LEGAL_HOLD` audit entry
 - Audit rows pointing at deleted requests
+- The same file checksum on more than one current document
+- A closed record with no retention date
+- Document metadata with no stored file
 
 Fix data through controlled record actions (`POST /api/admin/records/:id/control`) or desk workflow; do not delete audit rows.
 

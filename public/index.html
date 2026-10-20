@@ -499,7 +499,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <div class="action" onclick="adminTool('workflow')"><b>Workflow</b><span class="small">The four desks are fixed on the server. This screen explains them.</span></div>
 <div class="action" onclick="adminTool('accounts')"><b>User Accounts & Passwords</b><span class="small">Create accounts, reset passwords, lock/unlock users and assign roles.</span></div><div class="action" onclick="adminTool('permissions')"><b>Interface & Permissions</b><span class="small">Control menus, dashboards, actions and data visibility for every role.</span></div>
 <div class="action" onclick="adminTool('requests')"><b>Legal hold</b><span class="small">Place or release a legal hold. Requests cannot be reassigned or reopened from here.</span></div>
-<div class="action" onclick="adminTool('notifications')"><b>Reminder values</b><span class="small">Save reminder hours on the server. Email and SMS are not sent.</span></div>
+<div class="action" onclick="adminTool('notifications')"><b>Reminder values</b><span class="small">In-app reminders for due deliverables and unmatched disbursements. Email and SMS are not sent.</span></div>
 <div class="action" onclick="adminTool('entities')"><b>Directorates & Entities</b><span class="small">Add, edit, activate/deactivate and assign focal persons.</span></div>
 <div class="action" onclick="adminTool('templates')"><b>Forms & Templates</b><span class="small">Manage request, concept-note and document template versions.</span></div>
 <div class="action" onclick="adminTool('finance')"><b>Finance configuration</b><span class="small">Set the request-number prefix. Amounts stay in NLe.</span></div>
@@ -826,9 +826,9 @@ function adminTool(type){
   w.innerHTML=`<h3>Request intervention</h3><p class="small">Legal hold is applied on the server. Moving a request to another stage, reopening it, or reassigning it from this screen is not available, because that would skip the desk that holds it.</p>
   <div class="formgrid"><div class="field"><label for="adminReq">Request reference or ID</label><input id="adminReq" placeholder="SRHR-2026-010005"></div><div class="field"><label for="adminReqAction">Action</label><select id="adminReqAction"><option>Place legal hold</option><option>Release legal hold</option></select></div><div class="field full"><label for="adminReqNote">Reason</label><textarea id="adminReqNote" placeholder="Required for every intervention"></textarea></div></div><button class="btn" style="margin-top:12px" type="button" onclick="interveneRequest()">Apply legal hold change</button>`;
  } else if(type==='notifications'){
-  w.innerHTML=`<h3>Notifications</h3><p class="small">In-app alerts are stored when a desk acts. Email and SMS are not configured, and there is no scheduled reminder job. The numbers below are saved for operators; they are not sent automatically.</p>
-  <div class="formgrid"><div class="field"><label for="remH">Record a waiting time after (hours)</label><input type="number" id="remH" min="1" max="168" value="${systemConfig.reminderHours}"></div><div class="field"><label for="maxR">Maximum reminders to record</label><input type="number" id="maxR" min="1" max="10" value="${systemConfig.maxReminders}"></div><div class="field full"><label for="settingsNote">Reason</label><textarea id="settingsNote" placeholder="Why this change is being saved"></textarea></div></div>
-  <button class="btn" style="margin-top:12px" type="button" onclick="saveServerSettings('notifications')">Save on the server</button><p id="settingsState" class="small" role="status"></p>`;
+  w.innerHTML=`<h3>Notifications</h3><p class="small">A daily check stores an in-app alert when a deliverable date has passed or verified receipts are still short of a disbursement that has been waiting longer than the hours below. Email and SMS are not sent. The same alert is not repeated until those hours have passed, and not more than the maximum.</p>
+  <div class="formgrid"><div class="field"><label for="remH">Wait this many hours before reminding again</label><input type="number" id="remH" min="1" max="168" value="${systemConfig.reminderHours}"></div><div class="field"><label for="maxR">Maximum reminders for one item</label><input type="number" id="maxR" min="1" max="10" value="${systemConfig.maxReminders}"></div><div class="field full"><label for="settingsNote">Reason</label><textarea id="settingsNote" placeholder="Why this change is being saved"></textarea></div></div>
+  <button class="btn" style="margin-top:12px" type="button" onclick="saveServerSettings('notifications')">Save on the server</button> <button class="btn secondary" type="button" onclick="runDueRemindersNow()">Check due reminders now</button><p id="settingsState" class="small" role="status"></p>`;
   loadServerSettings();
  } else if(type==='entities'){
   w.innerHTML=`<h3>Directorates & Implementing Entities</h3><p class="small">Manage organizational units and designated focal persons.</p><button class="btn" onclick="simpleAdminAction('Entity created','Create new Directorate / Implementing Entity')">+ Add Entity</button> <button class="btn secondary" onclick="simpleAdminAction('Focal person reassigned','Reassign focal person')">Reassign Focal Person</button>`;
@@ -960,7 +960,17 @@ async function saveServerSettings(){
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.message||data.error||'Save failed');
   systemConfig.requestPrefix=data.request_prefix;systemConfig.reminderHours=data.reminder_hours;systemConfig.maxReminders=data.max_reminders;
-  if(state)state.textContent='Saved on the server. Email is still not configured, and existing reference numbers are unchanged.';
+  if(state)state.textContent='Saved on the server. Email is still not sent, and existing reference numbers are unchanged.';
+ }catch(error){if(state)state.textContent=error.message}
+}
+async function runDueRemindersNow(){
+ const state=document.getElementById('settingsState');
+ if(state)state.textContent='Checking due dates…';
+ try{
+  const response=await fetch('/api/admin/reminders/run',{method:'POST',credentials:'same-origin'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.message||data.error||'Check failed');
+  if(state)state.textContent=`Stored ${data.created} in-app reminder${Number(data.created)===1?'':'s'}. Email was not sent.`;
  }catch(error){if(state)state.textContent=error.message}
 }
 function saveNotifRules(){systemConfig.reminderHours=+document.getElementById('remH').value;systemConfig.maxReminders=+document.getElementById('maxR').value;persistConfig();audit('Notification rules changed',`Escalation ${systemConfig.reminderHours}h; max reminders ${systemConfig.maxReminders}`);alert('Notification rules saved.')}

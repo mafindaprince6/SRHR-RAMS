@@ -376,8 +376,58 @@ async function readOperatorSettings(env){
     reminder_hours:Number(values.reminder_hours||24),
     max_reminders:Number(values.max_reminders||3),
     email_delivery:'not_configured',
-    scheduled_reminders:false
+    scheduled_reminders:true,
+    reminder_channel:'in_app'
   };
+}
+async function reminderSlotOpen(env,requestNumber,role,type,hours,max){
+  const row=await env.DB.prepare(`SELECT COUNT(*) AS n, MAX(created_at) AS latest FROM notifications WHERE request_id=? AND recipient_role=? AND type=?`).bind(requestNumber,role,type).first();
+  if(Number(row?.n||0)>=max)return false;
+  if(row?.latest){
+    const elapsed=Date.now()-new Date(row.latest).getTime();
+    if(Number.isFinite(elapsed)&&elapsed<hours*3600000)return false;
+  }
+  return true;
+}
+async function runDueReminders(env){
+  const settings=await readOperatorSettings(env);
+  const hours=settings.reminder_hours;
+  const max=settings.max_reminders;
+  let created=0;
+  const today=new Date().toISOString().slice(0,10);
+  if(await deliverablesReady(env)){
+    const {results}=await env.DB.prepare(`
+      SELECT d.title,d.due_on,r.request_number
+      FROM deliverables d JOIN requests r ON r.id=d.request_id
+      WHERE d.status!='Verified' AND d.due_on IS NOT NULL AND d.due_on<=?
+        AND r.status NOT IN ('Draft','Withdrawn','Rejected','Closed')`).bind(today).all();
+    for(const row of results){
+      const message=`${row.request_number}: "${row.title}" was due ${row.due_on} and is not verified.`;
+      for(const role of ['IHPAU','Directorate User']){
+        if(!await reminderSlotOpen(env,row.request_number,role,'deliverable_due',hours,max))continue;
+        await note(env,role,row.request_number,'deliverable_due',message);
+        created++;
+      }
+    }
+  }
+  if(await financeReady(env)){
+    const cutoff=new Date(Date.now()-hours*3600000).toISOString();
+    const {results}=await env.DB.prepare(`
+      SELECT r.request_number,
+        COALESCE((SELECT SUM(amount_nle) FROM disbursements d WHERE d.request_id=r.id AND d.voided_at IS NULL),0) AS disbursed,
+        COALESCE((SELECT SUM(amount) FROM receipts rc WHERE rc.request_id=r.id AND rc.verification_status='Verified'),0) AS verified,
+        (SELECT MIN(created_at) FROM disbursements d WHERE d.request_id=r.id AND d.voided_at IS NULL) AS first_paid
+      FROM requests r
+      WHERE r.current_stage='IHPAU / Finance' AND r.status NOT IN ('Draft','Withdrawn','Rejected','Closed')`).all();
+    for(const row of results){
+      if(money2(row.verified)+0.001>=money2(row.disbursed)||money2(row.disbursed)<=0)continue;
+      if(!row.first_paid||row.first_paid>cutoff)continue;
+      if(!await reminderSlotOpen(env,row.request_number,'IHPAU','liquidation_overdue',hours,max))continue;
+      await note(env,'IHPAU',row.request_number,'liquidation_overdue',`${row.request_number}: verified receipts are still short of the disbursed amount.`);
+      created++;
+    }
+  }
+  return {ok:true,created,email_delivery:'not_configured',channel:'in_app'};
 }
 async function writeOperatorSettings(env,u,body){
   const note=String(body.note||'').trim();
@@ -1972,6 +2022,13 @@ export default {
       return J(saved);
     }
 
+    if(p==='/api/admin/reminders/run'&&req.method==='POST'){
+      if(u.role!=='Administrator'||!(await hasPermission(env,u,'configure_system')))return J({error:'forbidden'},403);
+      const result=await runDueReminders(env);
+      await audit(env,u,'REMINDERS_RUN','',`${result.created} in-app reminders. Email not sent.`);
+      return J(result);
+    }
+
     if(p==='/api/admin/settings'&&req.method==='GET'){
       if(u.role!=='Administrator')return J({error:'forbidden'},403);
       return J(await readOperatorSettings(env));
@@ -2954,6 +3011,10 @@ export default {
 
     return env.ASSETS.fetch(req);
 
+  },
+
+  async scheduled(_event,env){
+    await runDueReminders(env);
   }
 
 };
