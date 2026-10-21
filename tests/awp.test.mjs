@@ -64,6 +64,9 @@ test('the annual work plan menu is on the directorate, secretary, chairman and f
   assert.match(html, /data-v="awp"/);
   assert.match(html, /Annual Work Plan/);
   assert.match(html, /Submit this year's plan/);
+  assert.match(html, /#awpForm\[hidden\],#awpFilePanel\[hidden\]\{display:none\}/);
+  assert.match(awpJs, /form\.hidden = !data\.can_edit/);
+  assert.match(awpJs, /filePanel\.hidden = !data\.can_edit/);
   assert.match(html, /Work plan archive/);
   assert.match(html, /Implemented activities/);
   assert.match(html, /Budget issued/);
