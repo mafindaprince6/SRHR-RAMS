@@ -8,7 +8,7 @@ window.RoleBoards['Project Secretary']=async function renderSecretaryDashboard(r
   ]);
   const rows=queue.records||[];
   const oldest=rows.reduce((max,row)=>Math.max(max,Number(row.waiting_hours)||0),0);
-  const actions=`<div class="roleHeroActions"><button class="btn light" type="button" onclick="show('secretary')"><svg class="ico"><use href="#i-inbox"></use></svg> Open clearance desk</button></div>`;
+  const actions=`<div class="roleHeroActions"><button class="btn light" type="button" onclick="show('secretary')"><svg class="ico"><use href="#i-inbox"></use></svg> Open clearance desk</button><button class="btn secondary" type="button" onclick="show('awp')">Annual work plan</button></div>`;
   const body=rows.map(row=>`<tr><td>${kit.esc(row.request_number)}</td><td>${kit.esc(row.implementing_entity)}</td><td>${kit.esc(row.request_type)}</td><td>${kit.money(row.amount_nle)}</td><td>${row.waiting_hours==null?'—':kit.esc(row.waiting_hours+'h')}</td></tr>`).join('');
   root.innerHTML=`
     ${kit.hero('PROJECT SECRETARY','Clearance desk','Review submitted requests. Clear them to the Chairman, or return them with a reason. This desk does not file new requests.',actions)}

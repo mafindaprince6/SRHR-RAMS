@@ -311,6 +311,7 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 <button data-v="new" data-tooltip="New Request"><svg class="ico lg"><use href="#i-plus"></use></svg> <span class="navText">New Request</span></button>
 <button data-v="concept" data-tooltip="Concept Note"><svg class="ico lg"><use href="#i-file"></use></svg> <span class="navText">Concept Note</span></button>
 <button data-v="requests" data-tooltip="My Requests"><svg class="ico lg"><use href="#i-list"></use></svg> <span class="navText">My Requests</span></button>
+<button data-v="awp" data-tooltip="Annual Work Plan"><svg class="ico lg"><use href="#i-book"></use></svg> <span class="navText">Annual Work Plan</span></button>
 <button data-v="secretary" data-tooltip="Secretary Desk"><svg class="ico lg"><use href="#i-inbox"></use></svg> <span class="navText">Secretary Desk</span></button>
 <button data-v="approval" data-tooltip="Chairman Approval"><svg class="ico lg"><use href="#i-stamp"></use></svg> <span class="navText">Chairman Approval</span></button>
 <button data-v="ihpau" data-tooltip="IHPAU Desk"><svg class="ico lg"><use href="#i-briefcase"></use></svg> <span class="navText">IHPAU Desk</span></button>
@@ -456,6 +457,28 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
       <hr><p class="small">The full production preview will render all completed concept-note sections in the standard MoH/SRHR document format and support PDF/Word generation.</p>
     </div>
   </div>
+</section>
+
+<section id="awp" class="view">
+<div class="panel">
+ <h2 style="margin-top:0">Annual Work Plan</h2>
+ <p class="small" id="awpIntro">Open this page to load the work plan.</p>
+ <div class="archiveTools">
+  <div class="field"><label for="awpYearFilter">Fiscal year</label><input id="awpYearFilter" inputmode="numeric" placeholder="All years"></div>
+  <button class="btn secondary" type="button" id="awpRefresh">Show</button>
+ </div>
+ <form id="awpForm" class="formgrid" hidden>
+  <div class="field"><label for="awpYear">Fiscal year</label><input id="awpYear" type="number" min="2000" max="2100" value="2026" required></div>
+  <div class="field"><label for="awpCode">Activity code</label><input id="awpCode" maxlength="40" placeholder="6.2.19" required></div>
+  <div class="field full"><label for="awpTitle">Activity</label><input id="awpTitle" maxlength="200" placeholder="What this line of the work plan covers" required></div>
+  <div class="field"><label for="awpBudget">Budget (NLe)</label><input id="awpBudget" type="number" min="0" step="0.01" value="0"></div>
+  <div class="field"><label for="awpOutput">Target output</label><input id="awpOutput" maxlength="300" placeholder="Optional"></div>
+  <div class="field" style="justify-content:flex-end"><button class="btn" type="submit" id="awpSave">Add to the work plan</button> <button class="btn secondary" type="button" id="awpCancel" hidden>Cancel</button></div>
+ </form>
+ <p id="awpState" class="small" role="status"></p>
+ <p id="awpTotal" class="small"></p>
+ <div class="tableWrap"><table><thead><tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr></thead><tbody id="awpRows"><tr><td colspan="7" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
+</div>
 </section>
 
 <section id="requests" class="view"><div id="requestDetailPanel" hidden></div><div class="split"><div class="panel"><h2 id="requestsPanelTitle">My Requests</h2><div class="tableWrap"><table><thead><tr><th>ID</th><th>Request</th><th>Status</th><th>Action</th></tr></thead><tbody id="myRequestRows"><tr><td colspan="4" class="small">Open this desk to load your requests.</td></tr></tbody></table></div></div><div class="panel"><h3>Request Timeline</h3><div id="myRequestTimeline" class="timeline"><p class="small">Select a request reference to open the full detail, or use Edit on a draft.</p></div></div></div></section>
@@ -639,7 +662,7 @@ if(localStorage.getItem('srhrSidebarCollapsed')==='1'&&window.innerWidth>900){
   if(ico)ico.setAttribute('href','#i-chevron-right');
  }
 }
-const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",archive:"Records Archive",reports:"Management Reports",register:"Automatic Register"};
+const titles={dashboard:"Directorate Dashboard",new:"Create New Request",concept:"Concept Note",awp:"Annual Work Plan",requests:"Request Tracking",secretary:"Project Secretary Desk",approval:"Chairman Approval Desk",ihpau:"IHPAU Desk",admin:"Admin Control Centre",alerts:"Alerts & Reminders",archive:"Records Archive",reports:"Management Reports",register:"Automatic Register"};
 function dashboardTitle(){return { 'Directorate User':'Directorate Dashboard','Project Secretary':'Secretary Dashboard','Chairman':'Chairman Dashboard','IHPAU':'IHPAU Dashboard','Administrator':'Administration Dashboard' }[currentRole()]||titles.dashboard}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');const t=document.getElementById('title');if(t)t.textContent=id==='dashboard'?dashboardTitle():titles[id];document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===id))}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -1056,16 +1079,16 @@ refreshEntitySelectors();
 
 const RBAC_ROLES=['Directorate User','Project Secretary','Chairman','IHPAU','Administrator'];
 const VIEW_LABELS={
- dashboard:'Dashboard',new:'New Request',concept:'Concept Note',requests:'My Requests',
+ dashboard:'Dashboard',new:'New Request',concept:'Concept Note',awp:'Annual Work Plan',requests:'My Requests',
  secretary:'Secretary Desk',approval:'Chairman Approval',ihpau:'IHPAU Desk',
  admin:'Admin Control Centre',alerts:'Alerts & Reminders',archive:'Records Archive',reports:'Management Reports',register:'Automatic Register'
 };
 const DEFAULT_RBAC={
- 'Directorate User':{views:['dashboard','new','concept','requests','alerts','archive'],home:'dashboard',scope:'own_entity'},
- 'Project Secretary':{views:['dashboard','secretary','alerts','register','archive','reports'],home:'dashboard',scope:'all_requests'},
- 'Chairman':{views:['dashboard','approval','alerts','archive','reports'],home:'dashboard',scope:'approval_queue'},
- 'IHPAU':{views:['dashboard','ihpau','alerts','register','archive','reports'],home:'dashboard',scope:'ihpau_queue'},
- 'Administrator':{views:['dashboard','secretary','approval','ihpau','admin','alerts','archive','reports','register'],home:'dashboard',scope:'all'}
+ 'Directorate User':{views:['dashboard','new','concept','awp','requests','alerts','archive'],home:'dashboard',scope:'own_entity'},
+ 'Project Secretary':{views:['dashboard','secretary','awp','alerts','register','archive','reports'],home:'dashboard',scope:'all_requests'},
+ 'Chairman':{views:['dashboard','approval','awp','alerts','archive','reports'],home:'dashboard',scope:'approval_queue'},
+ 'IHPAU':{views:['dashboard','ihpau','awp','alerts','register','archive','reports'],home:'dashboard',scope:'ihpau_queue'},
+ 'Administrator':{views:['dashboard','secretary','approval','ihpau','awp','admin','alerts','archive','reports','register'],home:'dashboard',scope:'all'}
 };
 const APPLICANT_VIEWS=new Set(['new','concept','requests']);
 function normalizeRoleRbac(role,def){
@@ -1269,4 +1292,5 @@ document.getElementById('loginPass')?.addEventListener('keydown',e=>{if(e.key===
 <script src="/archive.js"></script>
 <script src="/reports.js"></script>
 <script src="/workflow.js"></script>
+<script src="/awp.js"></script>
 </div></body></html>

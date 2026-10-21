@@ -8,7 +8,7 @@ window.RoleBoards['IHPAU']=async function renderIhpauDashboard(root){
   ]);
   const rows=queue.records||[];
   const amount=rows.reduce((sum,row)=>sum+(Number(row.amount_nle)||0),0);
-  const actions=`<div class="roleHeroActions" id="dashHeroIhpau"><button class="btn light" type="button" onclick="show('ihpau')"><svg class="ico"><use href="#i-briefcase"></use></svg> Open IHPAU desk</button><button class="btn secondary" type="button" onclick="show('register')">Live register</button></div>`;
+  const actions=`<div class="roleHeroActions" id="dashHeroIhpau"><button class="btn light" type="button" onclick="show('ihpau')"><svg class="ico"><use href="#i-briefcase"></use></svg> Open IHPAU desk</button><button class="btn secondary" type="button" onclick="show('awp')">Annual work plan</button><button class="btn secondary" type="button" onclick="show('register')">Live register</button></div>`;
   const body=rows.map(row=>`<tr><td>${kit.esc(row.request_number)}</td><td>${kit.esc(row.title)}</td><td>${kit.esc(row.status)}</td><td>${kit.money(row.amount_nle)}</td><td>${kit.badge(row)}</td></tr>`).join('');
   root.innerHTML=`
     ${kit.hero('IHPAU FINANCE','Funds, receipts, and closure','Disburse approved funds, check receipts, and close records when the money is accounted for. IHPAU does not file requests.',actions)}

@@ -8,7 +8,7 @@ window.RoleBoards['Chairman']=async function renderChairmanDashboard(root){
   ]);
   const rows=queue.records||[];
   const amount=rows.reduce((sum,row)=>sum+(Number(row.amount_nle)||0),0);
-  const actions=`<div class="roleHeroActions"><button class="btn light" type="button" onclick="show('approval')"><svg class="ico"><use href="#i-stamp"></use></svg> Open approval desk</button></div>`;
+  const actions=`<div class="roleHeroActions"><button class="btn light" type="button" onclick="show('approval')"><svg class="ico"><use href="#i-stamp"></use></svg> Open approval desk</button><button class="btn secondary" type="button" onclick="show('awp')">Annual work plan</button></div>`;
   const body=rows.map(row=>`<tr><td>${kit.esc(row.request_number)}</td><td>${kit.esc(row.title)}</td><td>${kit.esc(row.implementing_entity)}</td><td>${kit.money(row.amount_nle)}</td><td>${row.waiting_hours==null?'—':kit.esc(row.waiting_hours+'h')}</td></tr>`).join('');
   root.innerHTML=`
     ${kit.hero('CHAIRMAN','Decisions waiting for you','Approve, query, or reject requests the Project Secretary has cleared. You do not file requests or concept notes.',actions)}

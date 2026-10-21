@@ -1612,6 +1612,104 @@ async function releaseIdempotency(env,u,key,id){
   await env.DB.prepare('DELETE FROM idempotency_keys WHERE user_id=? AND key=? AND request_id=?').bind(u.id,key,id).run().catch(()=>{});
 }
 
+const AWP_READ_ROLES=['Directorate User','Project Secretary','Chairman','IHPAU','Administrator'];
+
+async function awpReady(env){
+  try{
+    await env.DB.prepare('SELECT id FROM awp_activities LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+
+function readAwpFields(body,partial){
+  const hasYear=body.fiscal_year!=null&&String(body.fiscal_year).trim()!=='';
+  let year;
+  if(hasYear){
+    year=Number(body.fiscal_year);
+    if(!Number.isInteger(year)||year<2000||year>2100)return {error:'invalid_year',message:'Use a fiscal year from 2000 to 2100.',status:400};
+  }else if(!partial){
+    year=new Date().getUTCFullYear();
+  }
+  let code;
+  if(body.activity_code!=null){
+    code=String(body.activity_code).trim();
+    if(!/^[A-Za-z0-9][A-Za-z0-9./_-]{0,39}$/.test(code))return {error:'invalid_activity_code',message:'The activity code can use letters, numbers, dots, hyphens and slashes, up to 40 characters.',status:400};
+  }else if(!partial){
+    return {error:'invalid_activity_code',message:'Enter the AWP activity code.',status:400};
+  }
+  let title;
+  if(body.title!=null){
+    title=String(body.title).trim();
+    if(title.length<3||title.length>200)return {error:'invalid_title',message:'The activity title must be 3 to 200 characters.',status:400};
+  }else if(!partial){
+    return {error:'invalid_title',message:'Enter the activity title.',status:400};
+  }
+  let budget;
+  if(body.budget_nle!=null&&body.budget_nle!==''){
+    budget=Number(body.budget_nle);
+    if(!Number.isFinite(budget)||budget<0)return {error:'invalid_budget',message:'The budget must be zero or a positive number of leones.',status:400};
+  }else if(!partial){
+    budget=0;
+  }
+  let output;
+  if(body.output!=null)output=String(body.output).trim().slice(0,300);
+  else if(!partial)output='';
+  return {year,code,title,budget,output};
+}
+
+async function listAwp(env,user,year){
+  if(!AWP_READ_ROLES.includes(user.role))return {error:'forbidden',message:'This desk cannot open the annual work plan.',status:403};
+  if(!await awpReady(env))return {error:'migration_required',message:'Apply migrations/011_awp.sql before opening the annual work plan.',status:503};
+  const own=user.role==='Directorate User';
+  const entity=String(user.entity||'').trim();
+  if(own&&!entity)return {error:'entity_required',message:'Your account has no directorate, so an annual work plan cannot be opened.',status:400};
+  const where=['active=1'];
+  const args=[];
+  if(own){where.push('entity=?');args.push(entity)}
+  if(year!=null){where.push('fiscal_year=?');args.push(year)}
+  const {results}=await env.DB.prepare(`SELECT id,fiscal_year,entity,activity_code,title,budget_nle,output,updated_at FROM awp_activities WHERE ${where.join(' AND ')} ORDER BY fiscal_year DESC, entity, activity_code`).bind(...args).all();
+  return {activities:results,can_edit:own,entity:own?entity:''};
+}
+
+async function saveAwpActivity(env,user,id,body){
+  if(user.role!=='Directorate User')return {error:'forbidden',message:'Only a directorate can change its annual work plan.',status:403};
+  const entity=String(user.entity||'').trim();
+  if(!entity)return {error:'entity_required',message:'Your account has no directorate, so an activity cannot be added.',status:400};
+  if(!await awpReady(env))return {error:'migration_required',message:'Apply migrations/011_awp.sql before saving an annual work plan.',status:503};
+  const now=new Date().toISOString();
+  if(!id){
+    const fields=readAwpFields(body,false);
+    if(fields.error)return fields;
+    const clash=await env.DB.prepare(`SELECT id FROM awp_activities WHERE active=1 AND entity=? AND fiscal_year=? AND lower(activity_code)=lower(?)`).bind(entity,fields.year,fields.code).first();
+    if(clash)return {error:'duplicate_activity',message:'That activity code is already on your work plan for this year.',status:409};
+    const newId=crypto.randomUUID();
+    await env.DB.prepare(`INSERT INTO awp_activities(id,fiscal_year,entity,activity_code,title,budget_nle,output,active,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,?,?,?)`).bind(newId,fields.year,entity,fields.code,fields.title,fields.budget,fields.output,user.id,now,now).run();
+    await audit(env,user,'AWP_ADDED',newId,`${entity} ${fields.year} ${fields.code}`);
+    return {ok:true,id:newId,fiscal_year:fields.year,activity_code:fields.code,title:fields.title,budget_nle:fields.budget,entity};
+  }
+  const row=await env.DB.prepare('SELECT * FROM awp_activities WHERE id=?').bind(id).first();
+  if(!row||row.entity!==entity)return {error:'not_found',message:'That activity is not on your directorate work plan.',status:404};
+  if(body.active===false||body.active===0||body.active==='0'){
+    await env.DB.prepare('UPDATE awp_activities SET active=0, updated_at=? WHERE id=?').bind(now,id).run();
+    await audit(env,user,'AWP_REMOVED',id,`${entity} ${row.fiscal_year} ${row.activity_code}`);
+    return {ok:true,id,active:false};
+  }
+  const fields=readAwpFields(body,true);
+  if(fields.error)return fields;
+  const next={
+    fiscal_year:fields.year??row.fiscal_year,
+    activity_code:fields.code??row.activity_code,
+    title:fields.title??row.title,
+    budget_nle:fields.budget??row.budget_nle,
+    output:fields.output??row.output??''
+  };
+  const clash=await env.DB.prepare(`SELECT id FROM awp_activities WHERE active=1 AND entity=? AND fiscal_year=? AND lower(activity_code)=lower(?) AND id!=?`).bind(entity,next.fiscal_year,next.activity_code,id).first();
+  if(clash)return {error:'duplicate_activity',message:'That activity code is already on your work plan for this year.',status:409};
+  await env.DB.prepare('UPDATE awp_activities SET fiscal_year=?, activity_code=?, title=?, budget_nle=?, output=?, updated_at=? WHERE id=?').bind(next.fiscal_year,next.activity_code,next.title,next.budget_nle,next.output,now,id).run();
+  await audit(env,user,'AWP_UPDATED',id,`${entity} ${next.fiscal_year} ${next.activity_code}`);
+  return {ok:true,id,budget_nle:next.budget_nle,title:next.title};
+}
+
 
 
 export default {
@@ -3000,6 +3098,31 @@ export default {
       }
       await audit(env,u,'LEGACY_IMPORT','',`${created.length} draft records`);
       return J({ok:true,created},201);
+    }
+
+    if(p==='/api/awp'&&req.method==='GET'){
+      const rawYear=url.searchParams.get('fiscal_year');
+      let year=null;
+      if(rawYear){
+        year=Number(rawYear);
+        if(!Number.isInteger(year)||year<2000||year>2100)return J({error:'invalid_year',message:'Use a fiscal year from 2000 to 2100.'},400);
+      }
+      const listed=await listAwp(env,u,year);
+      if(listed.error)return J({error:listed.error,message:listed.message},listed.status||400);
+      return J(listed);
+    }
+    if(p==='/api/awp'&&req.method==='POST'){
+      const b=await req.json().catch(()=>({}));
+      const saved=await saveAwpActivity(env,u,null,b);
+      if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
+      return J(saved,201);
+    }
+    const awpPatch=p.match(/^\/api\/awp\/([^/]+)$/);
+    if(awpPatch&&req.method==='PATCH'){
+      const b=await req.json().catch(()=>({}));
+      const saved=await saveAwpActivity(env,u,decodeURIComponent(awpPatch[1]),b);
+      if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
+      return J(saved);
     }
 
     const archiveResponse=await handleArchive(req,env,u,p,url);
