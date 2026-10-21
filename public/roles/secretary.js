@@ -2,9 +2,10 @@ window.RoleBoards=window.RoleBoards||{};
 window.RoleBoards['Project Secretary']=async function renderSecretaryDashboard(root){
   const kit=window.RoleKit;
   root.innerHTML='<p class="small">Loading the clearance desk…</p>';
-  const [queue,dash]=await Promise.all([
+  const [queue,dash,plans]=await Promise.all([
     kit.api('/api/queues?desk=secretary'),
-    kit.api('/api/dashboard')
+    kit.api('/api/dashboard'),
+    kit.api('/api/awp').catch(error=>({error}))
   ]);
   const rows=queue.records||[];
   const oldest=rows.reduce((max,row)=>Math.max(max,Number(row.waiting_hours)||0),0);
@@ -20,5 +21,6 @@ window.RoleBoards['Project Secretary']=async function renderSecretaryDashboard(r
     ])}
     <h2>Submitted to you</h2>
     ${kit.table(['Reference','Directorate','Type','Amount','Waiting'],body?[body]:[],'Nothing is waiting for clearance.')}
+    ${plans.error?`<p class="small">${kit.esc(plans.error.message)}</p>`:(window.renderAwpDeskSummary?window.renderAwpDeskSummary(plans.activities||[]):'')}
   `;
 };

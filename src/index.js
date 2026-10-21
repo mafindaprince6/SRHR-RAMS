@@ -1685,10 +1685,11 @@ function awpRequestYear(row){
   return null;
 }
 
-async function awpIssuedRequests(env){
-  if(!await financeReady(env))return [];
-  const {results}=await env.DB.prepare(`SELECT r.id,r.request_number,r.implementing_entity,r.activity_code,r.fiscal_year,r.disbursement_year,COALESCE(SUM(d.amount_nle),0) AS issued_nle FROM requests r JOIN disbursements d ON d.request_id=r.id AND d.voided_at IS NULL WHERE TRIM(IFNULL(r.activity_code,''))!='' GROUP BY r.id`).all();
-  return (results||[]).filter(row=>money2(row.issued_nle)>0);
+async function awpActivityRequests(env){
+  const finance=await financeReady(env);
+  const issuedSql=finance?`COALESCE((SELECT SUM(d.amount_nle) FROM disbursements d WHERE d.request_id=r.id AND d.voided_at IS NULL),0)`:'0';
+  const {results}=await env.DB.prepare(`SELECT r.request_number,r.implementing_entity,r.activity_code,r.fiscal_year,r.disbursement_year,r.status,${issuedSql} AS issued_nle FROM requests r WHERE TRIM(IFNULL(r.activity_code,''))!='' AND r.status NOT IN ('Draft','Withdrawn','Rejected')`).all();
+  return results||[];
 }
 
 async function listAwp(env,user,year){
@@ -1702,7 +1703,7 @@ async function listAwp(env,user,year){
   if(own){where.push('entity=?');args.push(entity)}
   if(year!=null){where.push('fiscal_year=?');args.push(year)}
   const {results}=await env.DB.prepare(`SELECT id,fiscal_year,entity,activity_code,title,budget_nle,output,updated_at FROM awp_activities WHERE ${where.join(' AND ')} ORDER BY fiscal_year DESC, entity, activity_code`).bind(...args).all();
-  const issued=await awpIssuedRequests(env);
+  const linked=await awpActivityRequests(env);
   let names=[];
   try{
     const named=await env.DB.prepare('SELECT name, acronym FROM entities').all();
@@ -1710,9 +1711,18 @@ async function listAwp(env,user,year){
   }catch{names=[]}
   const activities=(results||[]).map(row=>{
     const aliases=awpEntityAliases(row.entity,names);
-    const matches=issued.filter(item=>awpText(item.activity_code)===awpText(row.activity_code)&&awpRequestYear(item)===Number(row.fiscal_year)&&aliases.has(awpText(item.implementing_entity)));
-    const issuedNle=money2(matches.reduce((sum,item)=>sum+money2(item.issued_nle),0));
-    return {...row,budget_issued:issuedNle>0,issued_nle:issuedNle,issued_requests:matches.map(item=>({request_number:item.request_number,amount_nle:money2(item.issued_nle)}))};
+    const matches=linked.filter(item=>awpText(item.activity_code)===awpText(row.activity_code)&&awpRequestYear(item)===Number(row.fiscal_year)&&aliases.has(awpText(item.implementing_entity)));
+    const issuedMatches=matches.filter(item=>money2(item.issued_nle)>0);
+    const issuedNle=money2(issuedMatches.reduce((sum,item)=>sum+money2(item.issued_nle),0));
+    const carriedOut=matches.filter(item=>money2(item.issued_nle)>0||item.status==='Closed');
+    return {
+      ...row,
+      budget_issued:issuedNle>0,
+      issued_nle:issuedNle,
+      issued_requests:issuedMatches.map(item=>({request_number:item.request_number,amount_nle:money2(item.issued_nle)})),
+      implemented:carriedOut.length>0,
+      implementation_requests:carriedOut.map(item=>({request_number:item.request_number,status:item.status,amount_nle:money2(item.issued_nle)}))
+    };
   });
   return {activities,can_edit:own,entity:own?entity:''};
 }

@@ -499,8 +499,14 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  </form>
  <p id="awpState" class="small" role="status"></p>
  <p id="awpTotal" class="small"></p>
- <h3>Working activities</h3>
- <div class="tableWrap"><table><thead><tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr></thead><tbody id="awpRows"><tr><td colspan="7" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
+ <h3 id="awpPlanTitle">Working activities</h3>
+ <div class="tableWrap"><table><thead id="awpPlanHead"><tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr></thead><tbody id="awpRows"><tr><td colspan="7" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
+</div>
+<div class="panel" style="margin-top:17px">
+ <h2 style="margin-top:0">Implemented activities</h2>
+ <p class="small" id="awpImplementedIntro">A tick shows a work-plan activity that has been implemented. Implementation means IHPAU recorded a disbursement for that activity, or the request is closed.</p>
+ <p id="awpImplementedState" class="small" role="status"></p>
+ <div class="tableWrap"><table><thead><tr><th>Directorate</th><th>Year</th><th>Code</th><th>Activity</th><th>Plan budget</th><th>Issued</th><th>Request</th><th>Status</th></tr></thead><tbody id="awpImplementedRows"><tr><td colspan="8" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
 </div>
 <div class="panel" style="margin-top:17px">
  <h2 style="margin-top:0">Budget issued</h2>

@@ -49,7 +49,6 @@ async function loadAwp() {
   const body = document.getElementById('awpRows');
   const form = document.getElementById('awpForm');
   const intro = document.getElementById('awpIntro');
-  const actionHead = document.getElementById('awpActionHead');
   if (!body) return;
   if (state) state.textContent = 'Loading the work plan…';
   const year = document.getElementById('awpYearFilter')?.value.trim() || '';
@@ -58,32 +57,37 @@ async function loadAwp() {
     const data = await awpApi('/api/awp' + query);
     awpRowsCache = data.activities || [];
     if (form) form.hidden = !data.can_edit;
-    if (actionHead) actionHead.hidden = !data.can_edit;
     const filePanel = document.getElementById('awpFilePanel');
     if (filePanel) filePanel.hidden = !data.can_edit;
     if (intro) {
       intro.textContent = data.can_edit
-        ? `Add the activities for ${data.entity}. Secretary, Chairman, and IHPAU can read this plan. They cannot change it.`
-        : 'Directorates record their annual work plan here. This desk can read every directorate plan and cannot change it.';
+        ? `Add the activities for ${data.entity}. Secretary, Chairman, and IHPAU can read this plan and see which activities have been implemented. They cannot change it.`
+        : 'This desk can read every directorate work plan and the activities each directorate has implemented. It cannot change a plan.';
+    }
+    const planTitle = document.getElementById('awpPlanTitle');
+    const planHead = document.getElementById('awpPlanHead');
+    if (planTitle) planTitle.textContent = data.can_edit ? 'Working activities' : 'All directorate work plans';
+    if (planHead) {
+      planHead.innerHTML = data.can_edit
+        ? '<tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr>'
+        : '<tr><th>Implemented</th><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th></tr>';
     }
     const total = awpRowsCache.reduce((sum, row) => sum + (Number(row.budget_nle) || 0), 0);
-    const columns = data.can_edit ? 7 : 6;
+    const columns = 7;
     body.innerHTML = awpRowsCache.length
-      ? awpRowsCache.map(row => {
-          const action = data.can_edit
-            ? `<td><button class="btn secondary" type="button" data-awp-edit="${esc(row.id)}">Edit</button> <button class="btn secondary" type="button" data-awp-remove="${esc(row.id)}">Remove</button></td>`
-            : '';
-          return `<tr><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${esc(row.output || '')}</td>${action}</tr>`;
-        }).join('')
+      ? (data.can_edit ? renderAwpEditorRows(awpRowsCache) : renderAwpReaderRows(awpRowsCache))
       : `<tr><td colspan="${columns}" class="small">No activities are on the work plan${year ? ` for ${esc(year)}` : ''}.</td></tr>`;
     const foot = document.getElementById('awpTotal');
     if (foot) foot.textContent = awpRowsCache.length ? `${awpRowsCache.length} activit${awpRowsCache.length === 1 ? 'y' : 'ies'} · ${awpMoney(total)}` : '';
     renderAwpIssued(awpRowsCache);
+    renderAwpImplemented(awpRowsCache, data.can_edit);
     if (state) state.textContent = '';
     await loadAwpArchive();
   } catch (error) {
     if (state) state.textContent = error.message;
     renderAwpIssuedError(error.message);
+    const implemented = document.getElementById('awpImplementedRows');
+    if (implemented) implemented.innerHTML = `<tr><td colspan="8" class="small">${esc(error.message)}</td></tr>`;
   }
 }
 
@@ -106,6 +110,83 @@ function renderAwpIssued(rows) {
         return `<tr><td>${mark}</td><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${row.budget_issued ? esc(awpMoney(row.issued_nle)) : '—'}</td><td>${requests}</td></tr>`;
       }).join('')
     : '<tr><td colspan="8" class="small">No activities are on the work plan.</td></tr>';
+}
+
+function awpDirectorateGroups(rows) {
+  const order = [];
+  const map = new Map();
+  for (const row of rows) {
+    const key = `${row.fiscal_year}::${row.entity}`;
+    if (!map.has(key)) {
+      map.set(key, { year: row.fiscal_year, entity: row.entity, rows: [] });
+      order.push(key);
+    }
+    map.get(key).rows.push(row);
+  }
+  return order.map(key => map.get(key));
+}
+
+function awpMark(on, onLabel, offLabel) {
+  return on
+    ? `<span class="awpMark" aria-label="${onLabel}">✓</span>`
+    : `<span class="awpMark off" aria-label="${offLabel}"></span>`;
+}
+
+function renderAwpEditorRows(rows) {
+  return rows.map(row => `<tr><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${esc(row.output || '')}</td><td><button class="btn secondary" type="button" data-awp-edit="${esc(row.id)}">Edit</button> <button class="btn secondary" type="button" data-awp-remove="${esc(row.id)}">Remove</button></td></tr>`).join('');
+}
+
+function renderAwpReaderRows(rows) {
+  return awpDirectorateGroups(rows).map(group => {
+    const done = group.rows.filter(row => row.implemented).length;
+    const heading = `<tr><td colspan="7"><b>${esc(group.entity)}</b> · ${esc(group.year)} · ${done} of ${group.rows.length} implemented</td></tr>`;
+    const lines = group.rows.map(row => `<tr><td>${awpMark(row.implemented, 'Implemented', 'Not implemented')}</td><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${esc(row.output || '')}</td></tr>`).join('');
+    return heading + lines;
+  }).join('');
+}
+
+function renderAwpImplemented(rows, canEdit) {
+  const body = document.getElementById('awpImplementedRows');
+  const state = document.getElementById('awpImplementedState');
+  const intro = document.getElementById('awpImplementedIntro');
+  if (!body) return;
+  if (intro) {
+    intro.textContent = canEdit
+      ? 'A tick in the work plan means you have implemented that activity. Implementation means IHPAU recorded a disbursement for it, or the request is closed.'
+      : 'Every directorate work plan is listed above. The activities below are the ones each directorate has implemented. Implementation means a disbursement was recorded for that activity code and year, or the request is closed.';
+  }
+  const done = rows.filter(row => row.implemented);
+  if (state) {
+    const directorates = new Set(done.map(row => row.entity)).size;
+    state.textContent = done.length
+      ? `${done.length} implemented activit${done.length === 1 ? 'y' : 'ies'} across ${directorates} directorate${directorates === 1 ? '' : 's'}.`
+      : '';
+  }
+  if (!done.length) {
+    body.innerHTML = '<tr><td colspan="8" class="small">No work-plan activity has been implemented yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = awpDirectorateGroups(done).map(group => {
+    const heading = `<tr><td colspan="8"><b>${esc(group.entity)}</b> · ${esc(group.year)} · ${group.rows.length} implemented</td></tr>`;
+    const lines = group.rows.map(row => {
+      const requests = row.implementation_requests || [];
+      const numbers = requests.map(item => esc(item.request_number)).join(', ') || '—';
+      const statuses = requests.map(item => esc(item.status)).join(', ') || '—';
+      return `<tr><td>${esc(row.entity)}</td><td>${esc(row.fiscal_year)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${row.budget_issued ? esc(awpMoney(row.issued_nle)) : '—'}</td><td>${numbers}</td><td>${statuses}</td></tr>`;
+    }).join('');
+    return heading + lines;
+  }).join('');
+}
+
+function renderAwpDeskSummary(rows) {
+  const groups = awpDirectorateGroups(rows || []);
+  if (!groups.length) return '<h2>Directorate work plans</h2><p class="small">No directorate has entered a work plan yet.</p>';
+  const body = groups.map(group => {
+    const done = group.rows.filter(row => row.implemented);
+    const codes = done.map(row => row.activity_code).join(', ') || 'None yet';
+    return `<tr><td>${esc(group.entity)}</td><td>${esc(group.year)}</td><td>${esc(group.rows.length)}</td><td>${esc(done.length)}</td><td>${esc(codes)}</td></tr>`;
+  }).join('');
+  return `<h2>Directorate work plans</h2><p class="small">All work plans are listed here. An implemented activity has a recorded disbursement, or its request is closed.</p><div class="tableWrap"><table><thead><tr><th>Directorate</th><th>Year</th><th>On the plan</th><th>Implemented</th><th>Implemented activities</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function renderAwpIssuedError(message) {
@@ -275,3 +356,4 @@ show = function (view) {
 };
 
 window.loadAwp = loadAwp;
+window.renderAwpDeskSummary = renderAwpDeskSummary;

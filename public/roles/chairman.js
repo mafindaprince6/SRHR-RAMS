@@ -2,9 +2,10 @@ window.RoleBoards=window.RoleBoards||{};
 window.RoleBoards['Chairman']=async function renderChairmanDashboard(root){
   const kit=window.RoleKit;
   root.innerHTML='<p class="small">Loading decisions…</p>';
-  const [queue,dash]=await Promise.all([
+  const [queue,dash,plans]=await Promise.all([
     kit.api('/api/queues?desk=chairman'),
-    kit.api('/api/dashboard')
+    kit.api('/api/dashboard'),
+    kit.api('/api/awp').catch(error=>({error}))
   ]);
   const rows=queue.records||[];
   const amount=rows.reduce((sum,row)=>sum+(Number(row.amount_nle)||0),0);
@@ -20,5 +21,6 @@ window.RoleBoards['Chairman']=async function renderChairmanDashboard(root){
     ])}
     <h2>Cleared to the Chairman</h2>
     ${kit.table(['Reference','Activity','Directorate','Amount','Waiting'],body?[body]:[],'No request is waiting for a decision.')}
+    ${plans.error?`<p class="small">${kit.esc(plans.error.message)}</p>`:(window.renderAwpDeskSummary?window.renderAwpDeskSummary(plans.activities||[]):'')}
   `;
 };

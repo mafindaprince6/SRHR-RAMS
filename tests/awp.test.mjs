@@ -65,10 +65,16 @@ test('the annual work plan menu is on the directorate, secretary, chairman and f
   assert.match(html, /Annual Work Plan/);
   assert.match(html, /Submit this year's plan/);
   assert.match(html, /Work plan archive/);
+  assert.match(html, /Implemented activities/);
   assert.match(html, /Budget issued/);
   assert.match(html, /A voided disbursement removes the tick/);
   assert.match(html, /Excel and PDF files are not read/);
   assert.match(awpJs, /aria-label="Budget issued"/);
+  assert.match(awpJs, /awpMark\(row\.implemented, 'Implemented'/);
+  assert.match(awpJs, /All directorate work plans/);
+  assert.match(readFileSync(new URL('../public/roles/secretary.js', import.meta.url), 'utf8'), /renderAwpDeskSummary/);
+  assert.match(readFileSync(new URL('../public/roles/chairman.js', import.meta.url), 'utf8'), /renderAwpDeskSummary/);
+  assert.match(readFileSync(new URL('../public/roles/ihpau.js', import.meta.url), 'utf8'), /renderAwpDeskSummary/);
   assert.match(html, /'Directorate User':\{views:\[[^\]]*'awp'/);
   assert.match(html, /'Project Secretary':\{views:\[[^\]]*'awp'/);
   assert.match(html, /'Chairman':\{views:\[[^\]]*'awp'/);
@@ -139,8 +145,9 @@ test('a work plan line is ticked only after a disbursement for that activity', a
     return { ...created, disbursement: await paid.json() };
   }
 
+  await call(db, '/api/requests', 'tok-d', { method: 'POST', body: { title: 'Draft only', implementing_entity: 'DPPI', activity_code: '9.1.1', amount_nle: 3, status: 'Draft', fiscal_year: '2026' } });
   const before = await (await call(db, '/api/awp?fiscal_year=2026', 'tok-d')).json();
-  assert.equal(before.activities.every(row => row.budget_issued === false && row.issued_nle === 0), true);
+  assert.equal(before.activities.every(row => row.budget_issued === false && row.issued_nle === 0 && row.implemented === false), true);
 
   const issued = await fund(
     { title: 'School health payment', implementing_entity: 'Directorate of Policy, Planning and Information', activity_code: '6.2.19', amount_nle: 40, fiscal_year: '2026' },
@@ -161,26 +168,44 @@ test('a work plan line is ticked only after a disbursement for that activity', a
     { title: 'DRCH payment', implementing_entity: 'DRCH', activity_code: '1.1.1', amount_nle: 12, fiscal_year: '2026' },
     { reference_number: 'PV-DRCH', amount_nle: 12 }
   );
+  await call(db, '/api/awp', 'tok-d', { method: 'POST', body: { fiscal_year: 2026, activity_code: '8.8.8', title: 'Closed without a new payment', budget_nle: 900 } });
+  const closed = await fund({ title: 'Closed line', implementing_entity: 'DPPI', activity_code: '8.8.8', amount_nle: 9, fiscal_year: '2026' });
+  db.prepare(`UPDATE requests SET status='Closed', current_stage='Closed' WHERE id=?`).run(closed.id);
 
   const own = await (await call(db, '/api/awp?fiscal_year=2026', 'tok-d')).json();
   const school = own.activities.find(row => row.activity_code === '6.2.19');
   const waiting = own.activities.find(row => row.activity_code === '9.1.1');
   assert.equal(school.budget_issued, true);
+  assert.equal(school.implemented, true);
   assert.equal(school.issued_nle, 40);
   assert.equal(school.budget_nle, 15000);
   assert.deepEqual(school.issued_requests.map(row => row.request_number), [issued.request_number]);
   assert.equal(waiting.budget_issued, false);
+  assert.equal(waiting.implemented, false);
+  const closedLine = own.activities.find(row => row.activity_code === '8.8.8');
+  assert.equal(closedLine.implemented, true);
+  assert.equal(closedLine.issued_nle, 0);
+  assert.equal(closedLine.budget_nle, 900);
+  assert.equal(closedLine.implementation_requests[0].status, 'Closed');
   assert.equal(own.activities.some(row => row.entity === 'DRCH'), false);
   const earlier = await (await call(db, '/api/awp?fiscal_year=2025', 'tok-d')).json();
   assert.equal(earlier.activities.find(row => row.activity_code === '6.2.19').issued_nle, 8);
   const shared = await (await call(db, '/api/awp?fiscal_year=2026', 'tok-s')).json();
-  assert.equal(shared.activities.find(row => row.entity === 'DRCH').budget_issued, true);
+  assert.equal(shared.activities.find(row => row.entity === 'DRCH').implemented, true);
   assert.equal(shared.activities.find(row => row.entity === 'DPPI' && row.activity_code === '6.2.19').issued_nle, 40);
+  for (const token of ['tok-c', 'tok-f']) {
+    const oversight = await (await call(db, '/api/awp?fiscal_year=2026', token)).json();
+    assert.equal(oversight.can_edit, false);
+    assert.deepEqual(oversight.activities.map(row => row.entity).filter((entity, index, list) => list.indexOf(entity) === index).sort(), ['DPPI', 'DRCH']);
+    assert.equal(oversight.activities.find(row => row.entity === 'DRCH' && row.activity_code === '1.1.1').implemented, true);
+    assert.equal(oversight.activities.find(row => row.activity_code === '9.1.1').implemented, false);
+  }
 
   assert.equal((await call(db, '/api/requests/' + issued.id + '/disbursements/' + issued.disbursement.id + '/void', 'tok-f', { method: 'POST', body: { reason: 'Wrong voucher' } })).status, 200);
   const cleared = await (await call(db, '/api/awp?fiscal_year=2026', 'tok-f')).json();
   const after = cleared.activities.find(row => row.entity === 'DPPI' && row.activity_code === '6.2.19');
   assert.equal(after.budget_issued, false);
+  assert.equal(after.implemented, false);
   assert.equal(after.issued_nle, 0);
   assert.equal(after.budget_nle, 15000);
 });

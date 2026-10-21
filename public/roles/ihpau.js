@@ -2,9 +2,10 @@ window.RoleBoards=window.RoleBoards||{};
 window.RoleBoards['IHPAU']=async function renderIhpauDashboard(root){
   const kit=window.RoleKit;
   root.innerHTML='<p class="small">Loading the finance overview…</p>';
-  const [queue,dash]=await Promise.all([
+  const [queue,dash,plans]=await Promise.all([
     kit.api('/api/queues?desk=ihpau'),
-    kit.api('/api/dashboard')
+    kit.api('/api/dashboard'),
+    kit.api('/api/awp').catch(error=>({error}))
   ]);
   const rows=queue.records||[];
   const amount=rows.reduce((sum,row)=>sum+(Number(row.amount_nle)||0),0);
@@ -20,5 +21,6 @@ window.RoleBoards['IHPAU']=async function renderIhpauDashboard(root){
     ])}
     <h2>Finance pipeline</h2>
     ${kit.table(['Reference','Activity','Finance status','Amount','Stage'],body?[body]:[],'No open request is with IHPAU.')}
+    ${plans.error?`<p class="small">${kit.esc(plans.error.message)}</p>`:(window.renderAwpDeskSummary?window.renderAwpDeskSummary(plans.activities||[]):'')}
   `;
 };
