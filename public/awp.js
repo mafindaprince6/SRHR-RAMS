@@ -78,11 +78,41 @@ async function loadAwp() {
       : `<tr><td colspan="${columns}" class="small">No activities are on the work plan${year ? ` for ${esc(year)}` : ''}.</td></tr>`;
     const foot = document.getElementById('awpTotal');
     if (foot) foot.textContent = awpRowsCache.length ? `${awpRowsCache.length} activit${awpRowsCache.length === 1 ? 'y' : 'ies'} · ${awpMoney(total)}` : '';
+    renderAwpIssued(awpRowsCache);
     if (state) state.textContent = '';
     await loadAwpArchive();
   } catch (error) {
     if (state) state.textContent = error.message;
+    renderAwpIssuedError(error.message);
   }
+}
+
+function renderAwpIssued(rows) {
+  const body = document.getElementById('awpIssuedRows');
+  const state = document.getElementById('awpIssuedState');
+  if (!body) return;
+  const issuedCount = rows.filter(row => row.budget_issued).length;
+  if (state) {
+    state.textContent = rows.length
+      ? `${issuedCount} of ${rows.length} activit${rows.length === 1 ? 'y has' : 'ies have'} a recorded disbursement.`
+      : '';
+  }
+  body.innerHTML = rows.length
+    ? rows.map(row => {
+        const mark = row.budget_issued
+          ? '<span class="awpMark" aria-label="Budget issued">✓</span>'
+          : '<span class="awpMark off" aria-label="Budget not issued"></span>';
+        const requests = (row.issued_requests || []).map(item => esc(item.request_number)).join(', ') || '—';
+        return `<tr><td>${mark}</td><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${row.budget_issued ? esc(awpMoney(row.issued_nle)) : '—'}</td><td>${requests}</td></tr>`;
+      }).join('')
+    : '<tr><td colspan="8" class="small">No activities are on the work plan.</td></tr>';
+}
+
+function renderAwpIssuedError(message) {
+  const body = document.getElementById('awpIssuedRows');
+  const state = document.getElementById('awpIssuedState');
+  if (state) state.textContent = '';
+  if (body) body.innerHTML = `<tr><td colspan="8" class="small">${esc(message)}</td></tr>`;
 }
 
 function awpWhen(value) {

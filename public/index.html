@@ -157,6 +157,8 @@ textarea{min-height:94px;resize:vertical}
 .upload{border:1.5px dashed color-mix(in srgb,var(--accent) 35%,#c9d6e0);border-radius:16px;padding:36px;text-align:center;background:linear-gradient(145deg,#fbfcfe,var(--accent-soft))}
 .extract{margin-top:16px;display:none}
 .ok{color:var(--green);font-weight:800}
+.awpMark{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:2px solid var(--green);border-radius:5px;color:var(--green);font-weight:800;background:#eef8f2}
+.awpMark.off{border-color:#c5d0dc;color:transparent;background:#fff}
 .missing{color:#b8860b;font-weight:800}
 .timeline{border-left:1px solid #ccd6de;margin-left:9px;padding-left:22px}
 .event{margin:0 0 22px;position:relative}
@@ -499,6 +501,12 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  <p id="awpTotal" class="small"></p>
  <h3>Working activities</h3>
  <div class="tableWrap"><table><thead><tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr></thead><tbody id="awpRows"><tr><td colspan="7" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
+</div>
+<div class="panel" style="margin-top:17px">
+ <h2 style="margin-top:0">Budget issued</h2>
+ <p class="small">Every activity on the work plan is listed here. A tick appears when IHPAU has recorded a disbursement on a request that uses the same activity code, directorate, and year. Approval without a disbursement leaves the box empty. A voided disbursement removes the tick.</p>
+ <p id="awpIssuedState" class="small" role="status"></p>
+ <div class="tableWrap"><table><thead><tr><th>Issued</th><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Plan budget</th><th>Issued</th><th>Request</th></tr></thead><tbody id="awpIssuedRows"><tr><td colspan="8" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
 </div>
 <div class="panel" style="margin-top:17px">
  <h2 style="margin-top:0">Work plan archive</h2>
