@@ -59,6 +59,8 @@ async function loadAwp() {
     awpRowsCache = data.activities || [];
     if (form) form.hidden = !data.can_edit;
     if (actionHead) actionHead.hidden = !data.can_edit;
+    const filePanel = document.getElementById('awpFilePanel');
+    if (filePanel) filePanel.hidden = !data.can_edit;
     if (intro) {
       intro.textContent = data.can_edit
         ? `Add the activities for ${data.entity}. Secretary, Chairman, and IHPAU can read this plan. They cannot change it.`
@@ -77,6 +79,53 @@ async function loadAwp() {
     const foot = document.getElementById('awpTotal');
     if (foot) foot.textContent = awpRowsCache.length ? `${awpRowsCache.length} activit${awpRowsCache.length === 1 ? 'y' : 'ies'} · ${awpMoney(total)}` : '';
     if (state) state.textContent = '';
+    await loadAwpArchive();
+  } catch (error) {
+    if (state) state.textContent = error.message;
+  }
+}
+
+function awpWhen(value) {
+  return String(value || '').replace('T', ' ').slice(0, 16);
+}
+
+async function loadAwpArchive() {
+  const body = document.getElementById('awpArchiveRows');
+  const state = document.getElementById('awpArchiveState');
+  if (!body) return;
+  const q = document.getElementById('awpArchiveQ')?.value.trim() || '';
+  const year = document.getElementById('awpYearFilter')?.value.trim() || '';
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (year) params.set('fiscal_year', year);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  try {
+    const data = await awpApi('/api/awp/submissions' + query);
+    const rows = data.submissions || [];
+    body.innerHTML = rows.length
+      ? rows.map(row => `<tr><td>${esc(row.fiscal_year)}</td><td>${esc(row.entity)}</td><td>${esc(awpWhen(row.submitted_at))}</td><td>${esc(row.line_count)}</td><td>${esc(awpMoney(row.total_budget_nle))}</td><td>${row.source === 'upload' ? 'Uploaded CSV' : 'Entered online'}</td><td><button class="btn secondary" type="button" data-awp-submission="${esc(row.id)}">${row.superseded_at ? 'Earlier copy' : 'Current copy'}</button></td></tr>`).join('')
+      : '<tr><td colspan="7" class="small">No work plan has been filed yet.</td></tr>';
+    if (state && state.textContent.startsWith('Loading')) state.textContent = '';
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="7" class="small">${esc(error.message)}</td></tr>`;
+  }
+}
+
+async function openAwpSubmission(id) {
+  const box = document.getElementById('awpArchiveDetail');
+  const state = document.getElementById('awpArchiveState');
+  if (!box) return;
+  if (state) state.textContent = 'Opening the filed plan…';
+  try {
+    const data = await awpApi('/api/awp/submissions/' + encodeURIComponent(id));
+    const plan = data.submission || {};
+    const lines = data.lines || [];
+    const body = lines.map(row => `<tr><td>${esc(row.activity_code)}</td><td>${esc(row.title)}</td><td>${esc(awpMoney(row.budget_nle))}</td><td>${esc(row.output || '')}</td></tr>`).join('') || '<tr><td colspan="4" class="small">This filing has no activities.</td></tr>';
+    box.hidden = false;
+    box.innerHTML = `<h3>${esc(plan.title || 'Filed work plan')}</h3><p class="small">${esc(plan.entity)} · ${esc(plan.fiscal_year)} · ${plan.source === 'upload' ? 'Uploaded CSV' : 'Entered online'}${plan.file_name ? ` · ${esc(plan.file_name)}` : ''} · ${plan.superseded_at ? 'Earlier copy' : 'Current copy'}</p><div class="tableWrap"><table><thead><tr><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th></tr></thead><tbody>${body}</tbody></table></div><button class="btn secondary" type="button" id="awpArchiveClose">Close</button>`;
+    box.querySelector('#awpArchiveClose')?.addEventListener('click', () => { box.hidden = true; box.innerHTML = ''; });
+    if (state) state.textContent = '';
+    box.scrollIntoView({ block: 'nearest' });
   } catch (error) {
     if (state) state.textContent = error.message;
   }
@@ -141,6 +190,46 @@ document.getElementById('awpCancel')?.addEventListener('click', () => {
   if (state) state.textContent = '';
 });
 document.getElementById('awpRefresh')?.addEventListener('click', () => loadAwp());
+document.getElementById('awpSubmitForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const state = document.getElementById('awpFileState');
+  const year = document.getElementById('awpSubmitYear')?.value;
+  if (state) state.textContent = 'Filing the work plan…';
+  try {
+    const filed = await awpApi('/api/awp/submissions', { method: 'POST', body: { fiscal_year: year } });
+    if (state) state.textContent = `Filed ${filed.line_count} activit${filed.line_count === 1 ? 'y' : 'ies'} for ${filed.fiscal_year}.`;
+    await loadAwpArchive();
+  } catch (error) {
+    if (state) state.textContent = error.message;
+  }
+});
+document.getElementById('awpUploadForm')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  const state = document.getElementById('awpFileState');
+  const file = document.getElementById('awpUploadFile')?.files?.[0];
+  const year = document.getElementById('awpUploadYear')?.value;
+  if (!file) { if (state) state.textContent = 'Choose a CSV file.'; return; }
+  if (!/\.csv$/i.test(file.name)) {
+    if (state) state.textContent = 'This file was not read. Save the work plan as a CSV with columns for activity code, activity, budget, and output. Excel and PDF files are not read.';
+    return;
+  }
+  if (state) state.textContent = 'Reading the file…';
+  try {
+    const text = await file.text();
+    const filed = await awpApi('/api/awp/submissions/upload', { method: 'POST', body: { fiscal_year: year, file_name: file.name, text } });
+    if (state) state.textContent = `Filed ${filed.line_count} activit${filed.line_count === 1 ? 'y' : 'ies'}. ${filed.added} added to the working plan. ${filed.skipped} already there and left unchanged.`;
+    document.getElementById('awpUploadFile').value = '';
+    await loadAwp();
+  } catch (error) {
+    if (state) state.textContent = error.message;
+  }
+});
+document.getElementById('awpArchiveSearch')?.addEventListener('click', () => loadAwpArchive());
+document.getElementById('awpArchiveQ')?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); loadAwpArchive(); } });
+document.getElementById('awpArchiveRows')?.addEventListener('click', event => {
+  const open = event.target.closest('[data-awp-submission]');
+  if (open) openAwpSubmission(open.dataset.awpSubmission);
+});
 document.getElementById('awpRows')?.addEventListener('click', event => {
   const edit = event.target.closest('[data-awp-edit]');
   const remove = event.target.closest('[data-awp-remove]');

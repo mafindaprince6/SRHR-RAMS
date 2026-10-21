@@ -1710,6 +1710,170 @@ async function saveAwpActivity(env,user,id,body){
   return {ok:true,id,budget_nle:next.budget_nle,title:next.title};
 }
 
+function awpFiscalYear(value){
+  const year=Number(value);
+  if(!Number.isInteger(year)||year<2000||year>2100)return null;
+  return year;
+}
+
+async function awpArchiveReady(env){
+  try{
+    await env.DB.prepare('SELECT id FROM awp_submissions LIMIT 1').first();
+    return true;
+  }catch{return false}
+}
+
+function awpDirectorate(user){
+  if(user.role!=='Directorate User')return {error:'forbidden',message:'Only a directorate can file its annual work plan.',status:403};
+  const entity=String(user.entity||'').trim();
+  if(!entity)return {error:'entity_required',message:'Your account has no directorate, so a work plan cannot be filed.',status:400};
+  return {entity};
+}
+
+function splitCsvLine(line,delimiter){
+  const out=[];
+  let current='';
+  let quoted=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(quoted){
+      if(ch==='"'&&line[i+1]==='"'){current+='"';i++}
+      else if(ch==='"')quoted=false;
+      else current+=ch;
+    }else if(ch==='"')quoted=true;
+    else if(ch===delimiter){out.push(current.trim());current=''}
+    else current+=ch;
+  }
+  out.push(current.trim());
+  return out;
+}
+
+function parseAwpCsv(text){
+  const raw=String(text||'').replace(/^\uFEFF/,'').trim();
+  if(!raw)return {error:'empty_file',message:'The file has no rows.',status:400};
+  if(raw.length>200000)return {error:'file_too_large',message:'Upload a CSV smaller than 200 KB.',status:400};
+  const lines=raw.split(/\r?\n/).filter(line=>line.trim());
+  if(!lines.length)return {error:'empty_file',message:'The file has no rows.',status:400};
+  const delimiter=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  const header=splitCsvLine(lines[0],delimiter).map(cell=>cell.toLowerCase());
+  const names={
+    code:['activity code','activity_code','code','awp code','awp'],
+    title:['activity','title','description','activity title'],
+    budget:['budget','budget_nle','amount','budget (nle)','nle'],
+    output:['output','target output','target_output']
+  };
+  const index=group=>header.findIndex(cell=>names[group].includes(cell));
+  const mapped=index('code')>=0;
+  const start=mapped?1:0;
+  const codeAt=mapped?index('code'):0;
+  const titleAt=mapped&&index('title')>=0?index('title'):1;
+  const budgetAt=mapped&&index('budget')>=0?index('budget'):2;
+  const outputAt=mapped&&index('output')>=0?index('output'):3;
+  const rows=[];
+  const seen=new Set();
+  for(let i=start;i<lines.length;i++){
+    const cells=splitCsvLine(lines[i],delimiter);
+    const code=String(cells[codeAt]||'').trim();
+    const title=String(cells[titleAt]||'').trim();
+    if(!code&&!title)continue;
+    const where=`Row ${i+1}`;
+    if(!/^[A-Za-z0-9][A-Za-z0-9./_-]{0,39}$/.test(code))return {error:'invalid_activity_code',message:`${where} needs an activity code of up to 40 letters, numbers, dots, hyphens or slashes.`,status:400};
+    if(title.length<3||title.length>200)return {error:'invalid_title',message:`${where} needs an activity title of 3 to 200 characters.`,status:400};
+    const budgetText=cells[budgetAt]==null?'':String(cells[budgetAt]).replace(/nle/ig,'').replace(/,/g,'').trim();
+    const budget=budgetText===''?0:Number(budgetText);
+    if(!Number.isFinite(budget)||budget<0)return {error:'invalid_budget',message:`${where} needs a budget of zero or a positive number of leones.`,status:400};
+    const key=code.toLowerCase();
+    if(seen.has(key))return {error:'duplicate_activity',message:`${where} repeats activity code ${code}.`,status:400};
+    seen.add(key);
+    rows.push({code,title,budget,output:String(cells[outputAt]||'').trim().slice(0,300)});
+    if(rows.length>100)return {error:'too_many_rows',message:'A work plan file can contain up to 100 activities.',status:400};
+  }
+  if(!rows.length)return {error:'empty_file',message:'The file has no activities. Use columns for activity code, activity, budget, and output.',status:400};
+  return {rows};
+}
+
+async function fileAwpSubmission(env,user,entity,year,source,fileName,lines){
+  const now=new Date().toISOString();
+  const id=crypto.randomUUID();
+  const total=lines.reduce((sum,line)=>sum+Number(line.budget_nle??line.budget??0),0);
+  await env.DB.prepare(`UPDATE awp_submissions SET superseded_at=? WHERE entity=? AND fiscal_year=? AND superseded_at IS NULL`).bind(now,entity,year).run();
+  await env.DB.prepare(`INSERT INTO awp_submissions(id,entity,fiscal_year,title,source,file_name,line_count,total_budget_nle,submitted_by,submitted_at) VALUES(?,?,?,?,?,?,?,?,?,?)`).bind(
+    id,entity,year,`${entity} annual work plan ${year}`,source,fileName||null,lines.length,total,user.id,now
+  ).run();
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    await env.DB.prepare(`INSERT INTO awp_submission_lines(id,submission_id,activity_code,title,budget_nle,output,sort_order) VALUES(?,?,?,?,?,?,?)`).bind(
+      crypto.randomUUID(),id,line.activity_code||line.code,line.title,Number(line.budget_nle??line.budget??0),line.output||'',i
+    ).run();
+  }
+  await audit(env,user,source==='upload'?'AWP_UPLOADED':'AWP_SUBMITTED',id,`${entity} ${year}; ${lines.length} activities`);
+  return {ok:true,id,entity,fiscal_year:year,source,line_count:lines.length,total_budget_nle:total};
+}
+
+async function submitAwp(env,user,body){
+  const who=awpDirectorate(user);
+  if(who.error)return who;
+  if(!await awpArchiveReady(env))return {error:'migration_required',message:'Apply migrations/012_awp_archive.sql before filing a work plan.',status:503};
+  const year=awpFiscalYear(body.fiscal_year);
+  if(!year)return {error:'invalid_year',message:'Use a fiscal year from 2000 to 2100.',status:400};
+  const {results}=await env.DB.prepare(`SELECT activity_code,title,budget_nle,output FROM awp_activities WHERE active=1 AND entity=? AND fiscal_year=? ORDER BY activity_code`).bind(who.entity,year).all();
+  if(!results.length)return {error:'empty_plan',message:'Add at least one activity for that year before submitting the work plan.',status:400};
+  return fileAwpSubmission(env,user,who.entity,year,'online','',results);
+}
+
+async function uploadAwp(env,user,body){
+  const who=awpDirectorate(user);
+  if(who.error)return who;
+  if(!await awpReady(env)||!await awpArchiveReady(env))return {error:'migration_required',message:'Apply migrations/012_awp_archive.sql before uploading a work plan.',status:503};
+  const year=awpFiscalYear(body.fiscal_year);
+  if(!year)return {error:'invalid_year',message:'Use a fiscal year from 2000 to 2100.',status:400};
+  const fileName=String(body.file_name||'').trim().slice(0,180);
+  if(!/\.csv$/i.test(fileName))return {error:'unsupported_file',message:'Save the work plan as a CSV file. Excel and PDF files are not read.',status:400};
+  const parsed=parseAwpCsv(body.text);
+  if(parsed.error)return parsed;
+  const filed=await fileAwpSubmission(env,user,who.entity,year,'upload',fileName,parsed.rows);
+  let added=0;
+  let skipped=0;
+  const now=new Date().toISOString();
+  for(const line of parsed.rows){
+    const clash=await env.DB.prepare(`SELECT id FROM awp_activities WHERE active=1 AND entity=? AND fiscal_year=? AND lower(activity_code)=lower(?)`).bind(who.entity,year,line.code).first();
+    if(clash){skipped++;continue}
+    await env.DB.prepare(`INSERT INTO awp_activities(id,fiscal_year,entity,activity_code,title,budget_nle,output,active,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,?,?,?)`).bind(crypto.randomUUID(),year,who.entity,line.code,line.title,line.budget,line.output,user.id,now,now).run();
+    added++;
+  }
+  return {...filed,added,skipped};
+}
+
+async function listAwpArchive(env,user,year,q){
+  if(!AWP_READ_ROLES.includes(user.role))return {error:'forbidden',message:'This desk cannot open the work plan archive.',status:403};
+  if(!await awpArchiveReady(env))return {error:'migration_required',message:'Apply migrations/012_awp_archive.sql before opening the work plan archive.',status:503};
+  const own=user.role==='Directorate User';
+  const entity=String(user.entity||'').trim();
+  if(own&&!entity)return {error:'entity_required',message:'Your account has no directorate, so the work plan archive cannot be opened.',status:400};
+  const where=[];
+  const args=[];
+  if(own){where.push('entity=?');args.push(entity)}
+  if(year!=null){where.push('fiscal_year=?');args.push(year)}
+  if(q){
+    where.push(`(entity LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR IFNULL(file_name,'') LIKE ? ESCAPE '\\')`);
+    const term=`%${q.replace(/[\\%_]/g,ch=>'\\'+ch)}%`;
+    args.push(term,term,term);
+  }
+  const clause=where.length?`WHERE ${where.join(' AND ')}`:'';
+  const {results}=await env.DB.prepare(`SELECT id,entity,fiscal_year,title,source,file_name,line_count,total_budget_nle,submitted_at,superseded_at FROM awp_submissions ${clause} ORDER BY submitted_at DESC LIMIT 100`).bind(...args).all();
+  return {submissions:results};
+}
+
+async function readAwpSubmission(env,user,id){
+  if(!AWP_READ_ROLES.includes(user.role))return {error:'forbidden',message:'This desk cannot open the work plan archive.',status:403};
+  if(!await awpArchiveReady(env))return {error:'migration_required',message:'Apply migrations/012_awp_archive.sql before opening the work plan archive.',status:503};
+  const row=await env.DB.prepare(`SELECT id,entity,fiscal_year,title,source,file_name,line_count,total_budget_nle,submitted_at,superseded_at FROM awp_submissions WHERE id=?`).bind(id).first();
+  if(!row)return {error:'not_found',message:'That filed work plan was not found.',status:404};
+  if(user.role==='Directorate User'&&row.entity!==String(user.entity||'').trim())return {error:'not_found',message:'That filed work plan was not found.',status:404};
+  const {results}=await env.DB.prepare(`SELECT activity_code,title,budget_nle,output FROM awp_submission_lines WHERE submission_id=? ORDER BY sort_order`).bind(id).all();
+  return {submission:row,lines:results};
+}
+
 
 
 export default {
@@ -3116,6 +3280,36 @@ export default {
       const saved=await saveAwpActivity(env,u,null,b);
       if(saved.error)return J({error:saved.error,message:saved.message},saved.status||400);
       return J(saved,201);
+    }
+    if(p==='/api/awp/submissions'&&req.method==='GET'){
+      const rawYear=url.searchParams.get('fiscal_year');
+      let year=null;
+      if(rawYear){
+        year=awpFiscalYear(rawYear);
+        if(!year)return J({error:'invalid_year',message:'Use a fiscal year from 2000 to 2100.'},400);
+      }
+      const q=String(url.searchParams.get('q')||'').trim().slice(0,80);
+      const listed=await listAwpArchive(env,u,year,q);
+      if(listed.error)return J({error:listed.error,message:listed.message},listed.status||400);
+      return J(listed);
+    }
+    if(p==='/api/awp/submissions'&&req.method==='POST'){
+      const b=await req.json().catch(()=>({}));
+      const filed=await submitAwp(env,u,b);
+      if(filed.error)return J({error:filed.error,message:filed.message},filed.status||400);
+      return J(filed,201);
+    }
+    if(p==='/api/awp/submissions/upload'&&req.method==='POST'){
+      const b=await req.json().catch(()=>({}));
+      const filed=await uploadAwp(env,u,b);
+      if(filed.error)return J({error:filed.error,message:filed.message},filed.status||400);
+      return J(filed,201);
+    }
+    const awpSubmission=p.match(/^\/api\/awp\/submissions\/([^/]+)$/);
+    if(awpSubmission&&req.method==='GET'){
+      const detail=await readAwpSubmission(env,u,decodeURIComponent(awpSubmission[1]));
+      if(detail.error)return J({error:detail.error,message:detail.message},detail.status||400);
+      return J(detail);
     }
     const awpPatch=p.match(/^\/api\/awp\/([^/]+)$/);
     if(awpPatch&&req.method==='PATCH'){

@@ -460,6 +460,26 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
 </section>
 
 <section id="awp" class="view">
+<div class="panel" id="awpFilePanel" hidden>
+ <h2 style="margin-top:0">Submit or upload</h2>
+ <p class="small">Submit the activities already entered for a year, or upload a CSV with columns for activity code, activity, budget, and output. Excel and PDF files are not read. The filed copy is kept in the archive.</p>
+ <div class="actions">
+  <form id="awpSubmitForm" class="action" style="cursor:default">
+   <b>Submit the working plan</b>
+   <span class="small">Files every activity already saved for the year below.</span>
+   <div class="field" style="margin-top:12px"><label for="awpSubmitYear">Fiscal year</label><input id="awpSubmitYear" type="number" min="2000" max="2100" value="2026" required></div>
+   <button class="btn" type="submit" style="margin-top:12px">Submit this year's plan</button>
+  </form>
+  <form id="awpUploadForm" class="action" style="cursor:default">
+   <b>Upload a CSV work plan</b>
+   <span class="small">New activity codes are added to the working plan. Codes already there are left unchanged.</span>
+   <div class="field" style="margin-top:12px"><label for="awpUploadYear">Fiscal year</label><input id="awpUploadYear" type="number" min="2000" max="2100" value="2026" required></div>
+   <div class="field" style="margin-top:12px"><label for="awpUploadFile">CSV file</label><input id="awpUploadFile" type="file" accept=".csv,text/csv" required></div>
+   <button class="btn" type="submit" style="margin-top:12px">Upload and file</button>
+  </form>
+ </div>
+ <p id="awpFileState" class="small" role="status"></p>
+</div>
 <div class="panel">
  <h2 style="margin-top:0">Annual Work Plan</h2>
  <p class="small" id="awpIntro">Open this page to load the work plan.</p>
@@ -477,7 +497,19 @@ img,video,canvas{max-width:100%}button{touch-action:manipulation}
  </form>
  <p id="awpState" class="small" role="status"></p>
  <p id="awpTotal" class="small"></p>
+ <h3>Working activities</h3>
  <div class="tableWrap"><table><thead><tr><th>Year</th><th>Directorate</th><th>Code</th><th>Activity</th><th>Budget</th><th>Output</th><th id="awpActionHead">Action</th></tr></thead><tbody id="awpRows"><tr><td colspan="7" class="small">Open this page to load the work plan.</td></tr></tbody></table></div>
+</div>
+<div class="panel" style="margin-top:17px">
+ <h2 style="margin-top:0">Work plan archive</h2>
+ <p class="small">Filed work plans stay here. A newer filing for the same directorate and year becomes the current copy. Earlier copies remain.</p>
+ <div class="archiveTools">
+  <div class="field"><label for="awpArchiveQ">Search</label><input id="awpArchiveQ" placeholder="Directorate, year, or file name"></div>
+  <button class="btn secondary" type="button" id="awpArchiveSearch">Search</button>
+ </div>
+ <p id="awpArchiveState" class="small" role="status"></p>
+ <div class="tableWrap"><table><thead><tr><th>Year</th><th>Directorate</th><th>Filed</th><th>Lines</th><th>Budget</th><th>Source</th><th>Copy</th></tr></thead><tbody id="awpArchiveRows"><tr><td colspan="7" class="small">Open this page to load the archive.</td></tr></tbody></table></div>
+ <div id="awpArchiveDetail" hidden></div>
 </div>
 </section>
 
