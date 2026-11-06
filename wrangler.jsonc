@@ -8,7 +8,7 @@
     {
       "binding": "DB",
       "database_name": "srhr-rams-db",
-      "database_id": "f6f6049d-e762-4641-90dd-22029cf24723"
+      "database_id": "5d34262b-769e-47e0-aa64-c1922a06e85c"
     }
   ]
   // After: npx wrangler r2 bucket create srhr-rams-documents
